@@ -66,12 +66,9 @@ const elements = {
   noteForm: document.getElementById('noteForm'),
 
   // 笔记输入
-  noteTitleInput: document.getElementById('noteTitleInput'),
   noteContentInput: document.getElementById('noteContentInput'),
-  noteTagsContainer: document.getElementById('noteTagsContainer'),
   closeNoteForm: document.getElementById('closeNoteForm'),
   saveNoteBtn: document.getElementById('saveNoteBtn'),
-  titleError: document.getElementById('titleError'),
 
   // 卡片
   cardsGrid: document.getElementById('cardsGrid'),
@@ -81,16 +78,26 @@ const elements = {
   linkCardTemplate: document.getElementById('linkCardTemplate'),
   linkLoadingTemplate: document.getElementById('linkLoadingTemplate'),
   noteCardTemplate: document.getElementById('noteCardTemplate'),
+
+  // 侧边栏元素
+  sidebarToggleBtn: document.getElementById('sidebarToggleBtn'),
+  sidebar: document.getElementById('tagSidebar'),
+  closeSidebarBtn: document.getElementById('closeSidebarBtn'),
+  tagsList: document.getElementById('tagsList'),
+  activeFilters: document.getElementById('activeFilters'),
+  activeFiltersList: document.getElementById('activeFiltersList'),
+  clearAllFiltersBtn: document.getElementById('clearAllFilters'),
+  noTagsState: document.getElementById('noTagsState'),
 };
 
 // ===== 编辑弹窗 DOM =====
 const editModal = {
   modal: document.getElementById('editModal'),
   textarea: document.getElementById('editContentTextarea'),
+  titleInput: document.getElementById('editTitleInput'),
+  titleError: document.getElementById('editTitleError'),
   tagsContainer: document.getElementById('editTagsContainer'),
-  filename: document.querySelector('.edit-modal-filename'),
   charCount: document.querySelector('.char-count'),
-  closeBtn: document.querySelector('.edit-modal-close'),
   saveBtn: document.querySelector('.btn-save-edit'),
   backdrop: document.querySelector('.edit-modal-backdrop')
 };
@@ -100,8 +107,6 @@ const linkEditModal = {
   modal: document.getElementById('linkEditModal'),
   form: document.getElementById('linkEditForm'),
   tagsContainer: document.getElementById('linkEditTagsContainer'),
-  filename: document.querySelector('#linkEditModal .edit-modal-filename'),
-  closeBtn: document.querySelector('.link-edit-close'),
   saveBtn: document.querySelector('.btn-save-link-edit'),
   backdrop: document.querySelector('#linkEditModal .edit-modal-backdrop')
 };
@@ -111,11 +116,14 @@ let dirHandle = null;
 let items = []; // { id, content, createdAt, handle }
 const pendingUrls = new Set();
 
+// 标签筛选状态
+let selectedTags = new Set();  // 存储选中的标签名称
+let allTags = [];              // 存储唯一标签及其计数: [{ name: 'tech', count: 5 }, ...]
+
 // 编辑相关状态
 let currentEditingItem = null;
 
 // TagsInput 组件实例
-let noteTagsInput = null;
 let editTagsInput = null;
 let linkEditTagsInput = null;
 
@@ -241,10 +249,239 @@ class TagsInput {
   }
 }
 
+// ===== 侧边栏标签筛选功能 =====
+
+/**
+ * 从所有项目中提取唯一标签并计数
+ * 按字母顺序排序
+ * @returns {Array} 标签数组 [{ name, count }]
+ */
+function extractAllTags() {
+  const tagMap = new Map();
+
+  items.forEach(item => {
+    const { data } = parseFrontMatter(item.content);
+    if (data.tags) {
+      const tags = data.tags.split(',').map(t => t.trim()).filter(t => t);
+      tags.forEach(tag => {
+        const count = tagMap.get(tag) || 0;
+        tagMap.set(tag, count + 1);
+      });
+    }
+  });
+
+  // 转换为数组并按字母顺序排序
+  const sortedTags = Array.from(tagMap.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+
+  return sortedTags;
+}
+
+/**
+ * 更新侧边栏标签列表
+ */
+function updateSidebarTags() {
+  allTags = extractAllTags();
+  renderSidebarTags();
+}
+
+/**
+ * 渲染侧边栏中的标签
+ */
+function renderSidebarTags() {
+  elements.tagsList.innerHTML = '';
+
+  // 显示/隐藏空状态
+  if (allTags.length === 0) {
+    elements.noTagsState.classList.remove('hidden');
+    elements.tagsList.classList.add('hidden');
+    return;
+  }
+
+  elements.noTagsState.classList.add('hidden');
+  elements.tagsList.classList.remove('hidden');
+
+  // 渲染每个标签
+  allTags.forEach(tag => {
+    const tagEl = createTagFilterElement(tag);
+    elements.tagsList.appendChild(tagEl);
+  });
+
+  // 更新已选筛选显示
+  updateActiveFilters();
+}
+
+/**
+ * 创建标签筛选元素
+ * @param {Object} tag - { name, count }
+ * @returns {HTMLElement}
+ */
+function createTagFilterElement(tag) {
+  const isSelected = selectedTags.has(tag.name);
+
+  const item = document.createElement('div');
+  item.className = `tag-filter-item${isSelected ? ' selected' : ''}`;
+  item.dataset.tag = tag.name;
+
+  item.innerHTML = `
+    <div class="tag-filter-checkbox">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <span class="tag-filter-name">${escapeHtml(tag.name)}</span>
+    <span class="tag-filter-count">${tag.count}</span>
+  `;
+
+  item.addEventListener('click', () => toggleTagFilter(tag.name));
+
+  return item;
+}
+
+/**
+ * HTML 转义，防止 XSS
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
+ * 切换标签选择状态
+ * @param {string} tagName
+ */
+function toggleTagFilter(tagName) {
+  if (selectedTags.has(tagName)) {
+    selectedTags.delete(tagName);
+  } else {
+    selectedTags.add(tagName);
+  }
+
+  renderSidebarTags();
+  filterAndRenderItems();
+}
+
+/**
+ * 清除所有标签筛选
+ */
+function clearAllTagFilters() {
+  selectedTags.clear();
+  renderSidebarTags();
+  filterAndRenderItems();
+}
+
+/**
+ * 更新已选筛选显示
+ */
+function updateActiveFilters() {
+  if (selectedTags.size === 0) {
+    elements.activeFilters.classList.add('hidden');
+    return;
+  }
+
+  elements.activeFilters.classList.remove('hidden');
+  elements.activeFiltersList.innerHTML = '';
+
+  selectedTags.forEach(tagName => {
+    const tagEl = document.createElement('span');
+    tagEl.className = 'tag';
+    tagEl.innerHTML = `
+      ${escapeHtml(tagName)}
+      <span class="tag-remove" data-tag="${tagName}">&times;</span>
+    `;
+
+    tagEl.querySelector('.tag-remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleTagFilter(tagName);
+    });
+
+    elements.activeFiltersList.appendChild(tagEl);
+  });
+}
+
+/**
+ * 根据选中的标签筛选项目（AND 逻辑）
+ * @returns {Array} 筛选后的项目
+ */
+function getFilteredItems() {
+  if (selectedTags.size === 0) {
+    return items;
+  }
+
+  return items.filter(item => {
+    const { data } = parseFrontMatter(item.content);
+    if (!data.tags) return false;
+
+    const itemTags = data.tags.split(',').map(t => t.trim()).filter(t => t);
+
+    // 检查项目是否包含所有选中的标签（AND 逻辑）
+    return [...selectedTags].every(selectedTag => itemTags.includes(selectedTag));
+  });
+}
+
+/**
+ * 筛选并渲染项目
+ */
+function filterAndRenderItems() {
+  const filteredItems = getFilteredItems();
+
+  elements.cardsGrid.innerHTML = '';
+  filteredItems.forEach(item => renderOneItem(item, false));
+  updateEmptyState();
+}
+
+/**
+ * 切换侧边栏（移动端）
+ */
+function toggleSidebar() {
+  elements.sidebar.classList.toggle('open');
+
+  if (elements.sidebar.classList.contains('open')) {
+    showSidebarOverlay();
+  } else {
+    hideSidebarOverlay();
+  }
+}
+
+/**
+ * 显示遮罩层
+ */
+function showSidebarOverlay() {
+  let overlay = document.querySelector('.sidebar-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay';
+    overlay.addEventListener('click', closeSidebar);
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.add('visible');
+}
+
+/**
+ * 隐藏遮罩层
+ */
+function hideSidebarOverlay() {
+  const overlay = document.querySelector('.sidebar-overlay');
+  if (overlay) {
+    overlay.classList.remove('visible');
+  }
+}
+
+/**
+ * 关闭侧边栏
+ */
+function closeSidebar() {
+  elements.sidebar.classList.remove('open');
+  hideSidebarOverlay();
+}
+
 // ===== 初始化 =====
 async function init() {
   // 初始化 TagsInput 组件
-  noteTagsInput = new TagsInput(elements.noteTagsContainer);
   editTagsInput = new TagsInput(editModal.tagsContainer);
   linkEditTagsInput = new TagsInput(linkEditModal.tagsContainer);
 
@@ -284,9 +521,6 @@ function bindEvents() {
   // 关闭表单
   elements.closeNoteForm.addEventListener('click', collapseForm);
 
-  // 标题输入验证
-  elements.noteTitleInput.addEventListener('input', handleTitleInput);
-
   // 提交表单
   elements.noteForm.addEventListener('submit', handleNoteSubmit);
 
@@ -302,6 +536,21 @@ function bindEvents() {
 
   // 卡片操作
   elements.cardsGrid.addEventListener('click', handleCardClick);
+
+  // 侧边栏切换
+  elements.sidebarToggleBtn.addEventListener('click', toggleSidebar);
+  elements.closeSidebarBtn.addEventListener('click', closeSidebar);
+
+  // 清除所有筛选
+  elements.clearAllFiltersBtn.addEventListener('click', clearAllTagFilters);
+
+  // 键盘快捷键
+  document.addEventListener('keydown', (e) => {
+    // ESC 关闭侧边栏
+    if (e.key === 'Escape' && elements.sidebar.classList.contains('open')) {
+      closeSidebar();
+    }
+  });
 }
 
 // ===== 文件系统操作 =====
@@ -401,6 +650,7 @@ async function loadItems() {
     // Sort by created/modified time (desc)
     items.sort((a, b) => b.createdAt - a.createdAt);
     renderItems();
+    updateSidebarTags();
 
   } catch (e) {
     console.error('Failed to load items:', e);
@@ -455,13 +705,42 @@ async function deleteFile(filename) {
   }
 }
 
+/**
+ * 重命名文件
+ * @param {string} oldFilename - 旧文件名（如 "MyNote.md"）
+ * @param {string} newFilename - 新文件名（如 "NewTitle.md"）
+ */
+async function renameFile(oldFilename, newFilename) {
+  try {
+    const fileHandle = await dirHandle.getFileHandle(oldFilename);
+
+    // 优先使用 move API（Chrome 109+）
+    if (fileHandle.move) {
+      await fileHandle.move(dirHandle, newFilename);
+      return;
+    }
+
+    // 兼容处理：复制新文件 -> 删除旧文件
+    const file = await fileHandle.getFile();
+    const content = await file.text();
+
+    const newFileHandle = await dirHandle.getFileHandle(newFilename, { create: true });
+    const writable = await newFileHandle.createWritable();
+    await writable.write(content);
+    await writable.close();
+
+    await dirHandle.removeEntry(oldFilename);
+  } catch (e) {
+    console.error('Rename file failed:', e);
+    throw e;
+  }
+}
+
 // ===== 业务逻辑：添加笔记/链接 =====
 async function handleNoteSubmit(e) {
   e.preventDefault();
 
-  const title = elements.noteTitleInput.value.trim();
   const content = elements.noteContentInput.value.trim();
-  const tags = noteTagsInput ? noteTagsInput.getTags() : [];
 
   if (!content) {
     collapseForm();
@@ -471,23 +750,13 @@ async function handleNoteSubmit(e) {
   // 单行链接检查
   if (isValidUrl(content)) {
     collapseForm(); // 提前关闭表单
-    await addLinkItem(content, tags);
+    await addLinkItem(content, []);
   } else {
-    // 检查标题是否已存在
-    if (title && isTitleExists(title)) {
-      showTitleError('该标题已存在，请使用其他标题');
-      elements.noteTitleInput.focus();
-      return;
-    }
-
-    // 普通笔记
-    await addItem(title, content, tags);
+    // 普通笔记 - 不带标题和标签
+    await addItem('', content, []);
 
     // 清空
-    clearTitleError();
-    elements.noteTitleInput.value = '';
     elements.noteContentInput.value = '';
-    noteTagsInput.clear();
     collapseForm();
   }
 }
@@ -520,6 +789,7 @@ async function addItem(title, content, tags = []) {
     // 渲染
     renderOneItem(newItem, true);
     updateEmptyState();
+    updateSidebarTags();
 
   } catch (e) {
     alert('保存失败: ' + e.message);
@@ -590,6 +860,7 @@ async function addLinkItem(url, tags = []) {
     // Replace Card
     const realCard = createLinkCard({ ...frontMatterData, id: newItem.id });
     loadingCard.replaceWith(realCard);
+    updateSidebarTags();
 
   } catch (e) {
     console.error('Add link failed:', e);
@@ -603,7 +874,14 @@ async function addLinkItem(url, tags = []) {
 
 // ===== 删除逻辑 =====
 async function handleCardClick(e) {
-  // 1. 处理删除按钮点击
+  // 1. 处理打开链接按钮点击 - 让链接正常打开，不阻止默认行为
+  const openLinkBtn = e.target.closest('.open-link-button');
+  if (openLinkBtn) {
+    // 不阻止默认行为，让链接正常打开
+    return;
+  }
+
+  // 2. 处理删除按钮点击
   const deleteBtn = e.target.closest('.delete-button');
   if (deleteBtn) {
     e.preventDefault();
@@ -662,6 +940,7 @@ async function handleCardClick(e) {
         setTimeout(() => {
           if (card.parentNode) card.remove();
           updateEmptyState();
+          updateSidebarTags();
         }, 200);
 
       } catch (err) {
@@ -707,21 +986,24 @@ function openEditModal(item) {
 
 // 打开笔记编辑弹窗
 function openNoteEditModal(item, data, content) {
+  // 填充标题（使用 item.id，即文件名）
+  editModal.titleInput.value = item.id;
+
   // 填充内容（不包含 front matter）
   editModal.textarea.value = content;
-  editModal.filename.textContent = item.fileName;
   updateCharCount(content);
 
   // 填充 tags
   const tags = data.tags ? data.tags.split(',').map(t => t.trim()) : [];
   editTagsInput.setTags(tags);
 
-  // 重置保存按钮状态
+  // 重置保存按钮状态和错误状态
   editModal.saveBtn.disabled = false;
   editModal.saveBtn.textContent = '保存';
+  clearEditTitleError();
 
   editModal.modal.classList.remove('hidden');
-  editModal.textarea.focus();
+  editModal.textarea.focus(); // 保持现有行为：聚焦到内容输入框
 }
 
 // 打开链接编辑弹窗
@@ -731,7 +1013,6 @@ function openLinkEditModal(item, data) {
   linkEditModal.form.url.value = data.url || '';
   linkEditModal.form.description.value = data.description || '';
   linkEditModal.form.image.value = data.image || '';
-  linkEditModal.filename.textContent = item.fileName;
 
   // 填充 tags
   const tags = data.tags ? data.tags.split(',').map(t => t.trim()) : [];
@@ -751,6 +1032,8 @@ async function closeEditModal() {
   const saved = await saveEditedNote();
   if (saved) {
     editModal.modal.classList.add('hidden');
+  } else {
+    // 保存失败，保持模态框打开
   }
 }
 
@@ -764,6 +1047,20 @@ async function saveEditedNote() {
     return false;
   }
 
+  // 获取新标题并处理空标题（空标题回退到原标题）
+  const newTitle = editModal.titleInput.value.trim();
+  const finalTitle = newTitle || currentEditingItem.id;
+  const sanitizedTitle = sanitizeFilename(finalTitle);
+
+  // 重复检测（如果标题改变）
+  if (sanitizedTitle !== currentEditingItem.id) {
+    if (isTitleExists(sanitizedTitle, currentEditingItem.id)) {
+      showEditTitleError('该标题已存在，请使用其他标题');
+      editModal.titleInput.focus();
+      return false;
+    }
+  }
+
   // 获取 tags
   const tags = editTagsInput.getTags();
 
@@ -771,10 +1068,16 @@ async function saveEditedNote() {
   editModal.saveBtn.textContent = '保存中...';
 
   try {
-    // 解析原有 front matter（保留其他属性）
-    const { data: originalData } = parseFrontMatter(currentEditingItem.content);
+    const oldFilename = currentEditingItem.fileName;
+    const newFilename = `${sanitizedTitle}.md`;
 
-    // 构建新的 front matter 数据
+    // 如果标题改变，执行文件重命名
+    if (newFilename !== oldFilename) {
+      await renameFile(oldFilename, newFilename);
+    }
+
+    // 构建新内容（tags + content）
+    const { data: originalData } = parseFrontMatter(currentEditingItem.content);
     const frontMatterData = { ...originalData };
     if (tags.length > 0) {
       frontMatterData.tags = tags.join(',');
@@ -782,44 +1085,59 @@ async function saveEditedNote() {
       delete frontMatterData.tags;
     }
 
-    // 生成新内容
     let finalContent = newContent;
     if (Object.keys(frontMatterData).length > 0) {
       finalContent = createMarkdownWithFrontMatter(frontMatterData, newContent);
     }
 
-    // 1. 保存到文件系统
-    await saveFile(currentEditingItem.fileName, finalContent);
+    // 保存内容到文件（使用新文件名）
+    await saveFile(newFilename, finalContent);
 
-    // 2. 更新内存
+    // 更新内存
     const index = items.findIndex(i => i.id === currentEditingItem.id);
     if (index !== -1) {
-      items[index].content = finalContent;
-      items[index].createdAt = Date.now();
+      items[index] = {
+        ...items[index],
+        id: sanitizedTitle,
+        content: finalContent,
+        createdAt: Date.now(),
+        fileName: newFilename
+      };
     }
 
-    // 3. 更新 UI（局部更新卡片）
-    const card = document.querySelector(`.card[data-id="${currentEditingItem.id}"]`);
+    // 更新 UI
+    const oldId = currentEditingItem.id;
+    const card = document.querySelector(`.card[data-id="${oldId}"]`);
+
     if (card) {
+      // 更新 data-id 属性
+      card.dataset.id = sanitizedTitle;
+
+      // 更新标题
+      const titleEl = card.querySelector('.note-title');
+      if (titleEl) titleEl.textContent = sanitizedTitle;
+
+      // 更新内容
       let body = newContent;
       const titleMatch = newContent.match(/^#\s+(.*)\n/);
       if (titleMatch) {
         body = newContent.replace(/^#\s+.*\n/, '').trim();
       }
-
-      const titleEl = card.querySelector('.note-title');
       const contentEl = card.querySelector('.note-content');
-      const tagsEl = card.querySelector('.card-tags');
-
-      if (titleEl) titleEl.textContent = currentEditingItem.id;
       if (contentEl) contentEl.innerHTML = marked.parse(body);
+
+      // 更新 tags
+      const tagsEl = card.querySelector('.card-tags');
       if (tagsEl) renderTags(tagsEl, tags);
     }
 
     // 重置状态
     currentEditingItem = null;
     editModal.textarea.value = '';
+    editModal.titleInput.value = '';
     editTagsInput.clear();
+    clearEditTitleError();
+    updateSidebarTags();
 
     return true;
 
@@ -844,7 +1162,6 @@ function updateCharCount(content) {
 
 // 绑定编辑弹窗事件
 function bindEditModalEvents() {
-  editModal.closeBtn.addEventListener('click', () => closeEditModal());
   editModal.saveBtn.addEventListener('click', async () => {
     const saved = await saveEditedNote();
     if (saved) {
@@ -853,6 +1170,9 @@ function bindEditModalEvents() {
   });
   editModal.backdrop.addEventListener('click', () => closeEditModal());
   editModal.textarea.addEventListener('input', handleEditInput);
+
+  // 标题输入验证
+  editModal.titleInput.addEventListener('input', handleEditTitleInput);
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !editModal.modal.classList.contains('hidden')) {
@@ -866,7 +1186,6 @@ function bindEditModalEvents() {
 
 // 绑定链接编辑弹窗事件
 function bindLinkEditModalEvents() {
-  linkEditModal.closeBtn.addEventListener('click', () => closeLinkEditModal());
   linkEditModal.saveBtn.addEventListener('click', async () => {
     const saved = await saveLinkEdit();
     if (saved) {
@@ -972,6 +1291,7 @@ async function saveLinkEdit() {
     // 重置按钮状态
     linkEditModal.saveBtn.disabled = false;
     linkEditModal.saveBtn.textContent = '保存';
+    updateSidebarTags();
 
     return true;
 
@@ -1059,7 +1379,6 @@ function createMarkdownWithFrontMatter(data, content = '') {
 function expandNoteForm() {
   elements.addBoxCollapsed.classList.add('hidden');
   elements.noteForm.classList.remove('hidden');
-  clearTitleError();
   elements.noteContentInput.focus();
 }
 
@@ -1233,9 +1552,11 @@ function generateTimestampTitle() {
 // ===== 标题验证相关 =====
 
 // 检查标题是否已存在
-function isTitleExists(title) {
+function isTitleExists(title, excludeId = null) {
   const sanitizedTitle = sanitizeFilename(title);
   return items.some(item => {
+    // 如果指定了 excludeId，排除该项
+    if (excludeId && item.id === excludeId) return false;
     // 对于笔记，id 就是文件名（不含扩展名）
     // 对于链接，id 也是文件名（不含扩展名）
     return item.id === sanitizedTitle;
@@ -1243,35 +1564,35 @@ function isTitleExists(title) {
 }
 
 // 标题输入处理
-function handleTitleInput() {
-  const title = elements.noteTitleInput.value.trim();
+// ===== 编辑模态框专用的标题验证 =====
+function handleEditTitleInput() {
+  const title = editModal.titleInput.value.trim();
 
   if (!title) {
-    clearTitleError();
+    clearEditTitleError();
     return;
   }
 
-  if (isTitleExists(title)) {
-    showTitleError('该标题已存在，请使用其他标题');
+  // 排除当前正在编辑的项目
+  if (isTitleExists(title, currentEditingItem?.id)) {
+    showEditTitleError('该标题已存在，请使用其他标题');
   } else {
-    clearTitleError();
+    clearEditTitleError();
   }
 }
 
-// 显示标题错误
-function showTitleError(message) {
-  elements.titleError.textContent = message;
-  elements.titleError.classList.add('visible');
-  elements.noteTitleInput.classList.add('error');
-  elements.saveNoteBtn.disabled = true;
+function showEditTitleError(message) {
+  editModal.titleError.textContent = message;
+  editModal.titleError.classList.add('visible');
+  editModal.titleInput.classList.add('error');
+  editModal.saveBtn.disabled = true;
 }
 
-// 清除标题错误
-function clearTitleError() {
-  elements.titleError.textContent = '';
-  elements.titleError.classList.remove('visible');
-  elements.noteTitleInput.classList.remove('error');
-  elements.saveNoteBtn.disabled = false;
+function clearEditTitleError() {
+  editModal.titleError.textContent = '';
+  editModal.titleError.classList.remove('visible');
+  editModal.titleInput.classList.remove('error');
+  editModal.saveBtn.disabled = false;
 }
 
 document.addEventListener('DOMContentLoaded', init);

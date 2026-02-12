@@ -15,29 +15,72 @@
 
 <body>
   <div class="app">
-    <!-- 头部 -->
-    <header class="header">
-      <div class="logo">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-          <rect x="4" y="2" width="16" height="20" rx="2" fill="#FBBC04" />
-          <rect x="8" y="6" width="8" height="2" rx="1" fill="#fff" />
-          <rect x="8" y="10" width="8" height="2" rx="1" fill="#fff" />
-          <rect x="8" y="14" width="5" height="2" rx="1" fill="#fff" />
-        </svg>
-        <h1>Keep</h1>
-      </div>
-      <div class="header-actions">
-        <button id="changeFolderBtn" class="text-button" title="切换文件夹">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span id="folderName">未选择文件夹</span>
-        </button>
-      </div>
-    </header>
+    <!-- 侧边栏切换按钮（移动端显示） -->
+    <button id="sidebarToggleBtn" class="sidebar-toggle" aria-label="切换侧边栏">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
 
-    <!-- 文件夹选择引导 -->
-    <section id="folderPrompt" class="folder-prompt">
+    <!-- 布局容器 -->
+    <div class="app-layout">
+      <!-- 标签筛选侧边栏 -->
+      <aside id="tagSidebar" class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-branding">
+            <svg class="brand-icon" width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="2" width="16" height="20" rx="2" fill="#FBBC04" />
+              <rect x="8" y="6" width="8" height="2" rx="1" fill="#fff" />
+              <rect x="8" y="10" width="8" height="2" rx="1" fill="#fff" />
+              <rect x="8" y="14" width="5" height="2" rx="1" fill="#fff" />
+            </svg>
+            <h1 class="brand-title">Keep</h1>
+          </div>
+          <div class="sidebar-actions">
+            <button id="changeFolderBtn" class="folder-button" title="切换文件夹">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span id="folderName">未选择文件夹</span>
+            </button>
+            <button id="closeSidebarBtn" class="icon-button sidebar-close" aria-label="关闭侧边栏">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-content">
+          <!-- 已选标签显示区域 -->
+          <div id="activeFilters" class="active-filters hidden">
+            <div class="active-filters-header">
+              <span class="active-filters-label">已选标签</span>
+              <button id="clearAllFilters" class="text-button clear-filters-btn">清除全部</button>
+            </div>
+            <div id="activeFiltersList" class="active-filters-list"></div>
+          </div>
+
+          <!-- 标签列表 -->
+          <div id="tagsList" class="tags-list">
+            <!-- 标签项将通过 JavaScript 动态插入 -->
+          </div>
+
+          <!-- 空状态 -->
+          <div id="noTagsState" class="no-tags-state">
+            <p>暂无标签</p>
+            <span class="text-muted">给笔记或链接添加标签后显示</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 主内容包装器 -->
+      <div class="main-wrapper">
+        <!-- 文件夹选择引导 -->
+        <section id="folderPrompt" class="folder-prompt">
       <div class="prompt-content">
         <div class="prompt-icon">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ddd" stroke-width="1.5">
@@ -62,9 +105,6 @@
 
           <!-- 展开状态 - 笔记 -->
           <form id="noteForm" class="add-box-expanded hidden">
-            <input type="text" id="noteTitleInput" class="title-input" placeholder="标题（可选）">
-            <div class="title-error" id="titleError"></div>
-            <div id="noteTagsContainer" class="tags-input-container"></div>
             <textarea id="noteContentInput" class="content-input" placeholder="记录内容..." rows="3"></textarea>
             <div class="add-box-actions">
               <div class="action-buttons">
@@ -90,6 +130,8 @@
         </div>
       </section>
     </main>
+      </div>
+    </div>
   </div>
 
   <!-- 链接卡片模板 -->
@@ -163,19 +205,12 @@
   <div id="editModal" class="edit-modal hidden">
     <div class="edit-modal-backdrop"></div>
     <div class="edit-modal-container">
-      <div class="edit-modal-header">
-        <div class="edit-modal-title-info">
-          <span class="edit-modal-filename">文件名.md</span>
-          <span class="edit-modal-hint">编辑内容</span>
-        </div>
-        <button class="icon-button edit-modal-close" title="关闭">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
       <div class="edit-modal-body">
+        <!-- 标题输入区域 -->
+        <div class="edit-title-section">
+          <input type="text" id="editTitleInput" class="edit-title-input" placeholder="标题（可选）">
+          <div class="title-error" id="editTitleError"></div>
+        </div>
         <textarea id="editContentTextarea" class="edit-textarea" placeholder="编辑笔记内容..." spellcheck="false"></textarea>
         <div id="editTagsContainer" class="tags-input-container"></div>
       </div>
@@ -192,18 +227,6 @@
   <div id="linkEditModal" class="edit-modal hidden">
     <div class="edit-modal-backdrop"></div>
     <div class="edit-modal-container">
-      <div class="edit-modal-header">
-        <div class="edit-modal-title-info">
-          <span class="edit-modal-filename">链接.md</span>
-          <span class="edit-modal-hint">编辑链接</span>
-        </div>
-        <button class="icon-button link-edit-close" title="关闭">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
       <div class="edit-modal-body">
         <form id="linkEditForm" class="link-edit-form">
           <div class="form-group">
