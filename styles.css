@@ -55,7 +55,7 @@ body {
 
 /* ===== App Container ===== */
 .app {
-  max-width: 920px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 1rem;
 }
@@ -282,7 +282,7 @@ body {
 
 /* Masonry Layout - 瀑布流 */
 .cards-grid {
-  column-count: 4;
+  column-count: 6;
   column-gap: 1rem;
 }
 
@@ -577,6 +577,24 @@ body {
 }
 
 /* ===== Responsive ===== */
+@media (min-width: 1600px) {
+  .app {
+    padding: 2rem 3rem;
+  }
+}
+
+@media (max-width: 1400px) {
+  .cards-grid {
+    column-count: 5;
+  }
+}
+
+@media (max-width: 1200px) {
+  .cards-grid {
+    column-count: 4;
+  }
+}
+
 @media (max-width: 1100px) {
   .cards-grid {
     column-count: 3;
