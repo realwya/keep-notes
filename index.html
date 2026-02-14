@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>记事本 | Keep</title>
-  <meta name="description" content="像 Google Keep 一样记录链接和笔记">
+  <title>Notes | Keep</title>
+  <meta name="description" content="Capture links and notes like Google Keep">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
 <body>
   <div class="app">
     <!-- 侧边栏切换按钮（移动端显示） -->
-    <button id="sidebarToggleBtn" class="sidebar-toggle" aria-label="切换侧边栏">
+    <button id="sidebarToggleBtn" class="sidebar-toggle" aria-label="Toggle sidebar">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="3" y1="12" x2="21" y2="12"></line>
         <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -39,13 +39,13 @@
             <h1 class="brand-title">Keep</h1>
           </div>
           <div class="sidebar-actions">
-            <button id="changeFolderBtn" class="folder-button" title="切换文件夹">
+            <button id="changeFolderBtn" class="folder-button" title="Change folder">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
               </svg>
-              <span id="folderName">未选择文件夹</span>
+              <span id="folderName">No folder selected</span>
             </button>
-            <button id="closeSidebarBtn" class="icon-button sidebar-close" aria-label="关闭侧边栏">
+            <button id="closeSidebarBtn" class="icon-button sidebar-close" aria-label="Close sidebar">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -55,11 +55,16 @@
         </div>
 
         <div class="sidebar-content">
+          <div class="view-switch">
+            <button id="viewNotesBtn" class="view-switch-btn active" type="button">Notes</button>
+            <button id="viewTrashBtn" class="view-switch-btn" type="button">Trash</button>
+          </div>
+
           <!-- 已选标签显示区域 -->
           <div id="activeFilters" class="active-filters hidden">
             <div class="active-filters-header">
-              <span class="active-filters-label">已选标签</span>
-              <button id="clearAllFilters" class="text-button clear-filters-btn">清除全部</button>
+              <span class="active-filters-label">Selected Tags</span>
+              <button id="clearAllFilters" class="text-button clear-filters-btn">Clear all</button>
             </div>
             <div id="activeFiltersList" class="active-filters-list"></div>
           </div>
@@ -71,8 +76,8 @@
 
           <!-- 空状态 -->
           <div id="noTagsState" class="no-tags-state">
-            <p>暂无标签</p>
-            <span class="text-muted">给笔记或链接添加标签后显示</span>
+            <p>No tags yet</p>
+            <span class="text-muted">Tags will appear after you add them to notes or links</span>
           </div>
         </div>
       </aside>
@@ -87,9 +92,9 @@
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
           </svg>
         </div>
-        <h2>选择存储位置</h2>
-        <p>请选择一个本地文件夹来存储你的笔记和链接。<br>数据将直接保存在你的设备上。</p>
-        <button id="openFolderBtn" class="primary-button">打开文件夹</button>
+        <h2>Choose a storage location</h2>
+        <p>Select a local folder to store your notes and links.<br>Your data stays on your device.</p>
+        <button id="openFolderBtn" class="primary-button">Open folder</button>
       </div>
     </section>
 
@@ -100,16 +105,16 @@
         <div id="addBox" class="add-box">
           <!-- 收起状态 -->
           <div id="addBoxCollapsed" class="add-box-collapsed">
-            <span class="add-placeholder">记录新内容...</span>
+            <span class="add-placeholder">Take a note...</span>
           </div>
 
           <!-- 展开状态 - 笔记 -->
           <form id="noteForm" class="add-box-expanded hidden">
-            <textarea id="noteContentInput" class="content-input" placeholder="记录内容..." rows="3"></textarea>
+            <textarea id="noteContentInput" class="content-input" placeholder="Write something..." rows="3"></textarea>
             <div class="add-box-actions">
               <div class="action-buttons">
-                <button type="button" class="text-button" id="closeNoteForm">关闭</button>
-                <button type="submit" class="text-button primary" id="saveNoteBtn">保存</button>
+                <button type="button" class="text-button" id="closeNoteForm">Close</button>
+                <button type="submit" class="text-button primary" id="saveNoteBtn">Save</button>
               </div>
             </div>
           </form>
@@ -126,7 +131,7 @@
             <rect x="8" y="10" width="8" height="2" rx="1" fill="#DADCE0" />
             <rect x="8" y="14" width="5" height="2" rx="1" fill="#DADCE0" />
           </svg>
-          <p>你添加的链接和笔记会显示在这里</p>
+          <p>Your links and notes will appear here</p>
         </div>
       </section>
     </main>
@@ -153,14 +158,14 @@
       </div>
       <div class="card-tags"></div>
       <div class="card-actions">
-        <a class="icon-button open-link-button" href="#" target="_blank" title="打开链接">
+        <a class="icon-button open-link-button" href="#" target="_blank" title="Open link">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
             <polyline points="15 3 21 3 21 9"></polyline>
             <line x1="10" y1="14" x2="21" y2="3"></line>
           </svg>
         </a>
-        <button class="icon-button delete-button" title="删除">
+        <button class="icon-button delete-button" title="Delete">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -191,7 +196,7 @@
       </div>
       <div class="card-tags"></div>
       <div class="card-actions">
-        <button class="icon-button delete-button" title="删除">
+        <button class="icon-button delete-button" title="Delete">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -208,16 +213,16 @@
       <div class="edit-modal-body">
         <!-- 标题输入区域 -->
         <div class="edit-title-section">
-          <input type="text" id="editTitleInput" class="edit-title-input" placeholder="标题（可选）">
+          <input type="text" id="editTitleInput" class="edit-title-input" placeholder="Title (optional)">
           <div class="title-error" id="editTitleError"></div>
         </div>
-        <textarea id="editContentTextarea" class="edit-textarea" placeholder="编辑笔记内容..." spellcheck="false"></textarea>
+        <textarea id="editContentTextarea" class="edit-textarea" placeholder="Edit note content..." spellcheck="false"></textarea>
         <div id="editTagsContainer" class="tags-input-container"></div>
       </div>
       <div class="edit-modal-footer">
-        <span class="char-count">0 字符</span>
+        <span class="char-count">0 chars</span>
         <div class="edit-modal-actions">
-          <button class="text-button primary btn-save-edit">保存</button>
+          <button class="text-button primary btn-save-edit">Save</button>
         </div>
       </div>
     </div>
@@ -230,30 +235,30 @@
       <div class="edit-modal-body">
         <form id="linkEditForm" class="link-edit-form">
           <div class="form-group">
-            <label>标题</label>
+            <label>Title</label>
             <input type="text" name="title" class="form-input">
           </div>
           <div class="form-group">
-            <label>链接</label>
+            <label>Link</label>
             <input type="url" name="url" class="form-input">
           </div>
           <div class="form-group">
-            <label>描述</label>
+            <label>Description</label>
             <textarea name="description" class="form-textarea" rows="2"></textarea>
           </div>
           <div class="form-group">
-            <label>封面图片</label>
+            <label>Cover image</label>
             <input type="text" name="image" class="form-input">
           </div>
           <div class="form-group">
-            <label>标签</label>
+            <label>Tags</label>
             <div id="linkEditTagsContainer" class="tags-input-container"></div>
           </div>
         </form>
       </div>
       <div class="edit-modal-footer">
         <div class="edit-modal-actions">
-          <button class="text-button primary btn-save-link-edit">保存</button>
+          <button class="text-button primary btn-save-link-edit">Save</button>
         </div>
       </div>
     </div>

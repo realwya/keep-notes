@@ -61,6 +61,7 @@ const elements = {
   changeFolderBtn: document.getElementById('changeFolderBtn'),
 
   // 输入框
+  addSection: document.querySelector('.add-section'),
   addBox: document.getElementById('addBox'),
   addBoxCollapsed: document.getElementById('addBoxCollapsed'),
   noteForm: document.getElementById('noteForm'),
@@ -73,6 +74,7 @@ const elements = {
   // 卡片
   cardsGrid: document.getElementById('cardsGrid'),
   emptyState: document.getElementById('emptyState'),
+  emptyStateText: document.querySelector('#emptyState p'),
 
   // 模板
   linkCardTemplate: document.getElementById('linkCardTemplate'),
@@ -83,6 +85,8 @@ const elements = {
   sidebarToggleBtn: document.getElementById('sidebarToggleBtn'),
   sidebar: document.getElementById('tagSidebar'),
   closeSidebarBtn: document.getElementById('closeSidebarBtn'),
+  viewNotesBtn: document.getElementById('viewNotesBtn'),
+  viewTrashBtn: document.getElementById('viewTrashBtn'),
   tagsList: document.getElementById('tagsList'),
   activeFilters: document.getElementById('activeFilters'),
   activeFiltersList: document.getElementById('activeFiltersList'),
@@ -115,6 +119,9 @@ const linkEditModal = {
 let dirHandle = null;
 let items = []; // { id, content, createdAt, handle }
 const pendingUrls = new Set();
+const VIEW_ACTIVE = 'active';
+const VIEW_TRASH = 'trash';
+let currentView = VIEW_ACTIVE;
 
 // 标签筛选状态
 let selectedTags = new Set();  // 存储选中的标签名称
@@ -132,7 +139,7 @@ class TagsInput {
   constructor(container, options = {}) {
     this.tags = [];
     this.container = container;
-    this.placeholder = options.placeholder || '添加标签（按回车）';
+    this.placeholder = options.placeholder || 'Add tag (press Enter)';
     this.maxTags = options.maxTags || Infinity;
     this.onChange = options.onChange || (() => {});
 
@@ -182,7 +189,7 @@ class TagsInput {
       return;
     }
     if (this.tags.length >= this.maxTags) {
-      alert('最多添加 ' + this.maxTags + ' 个标签');
+      alert('You can add up to ' + this.maxTags + ' tags');
       return;
     }
 
@@ -284,6 +291,12 @@ function extractAllTags() {
 function updateSidebarTags() {
   allTags = extractAllTags();
   renderSidebarTags();
+}
+
+function updateViewControls() {
+  elements.viewNotesBtn.classList.toggle('active', currentView === VIEW_ACTIVE);
+  elements.viewTrashBtn.classList.toggle('active', currentView === VIEW_TRASH);
+  elements.addSection.classList.toggle('hidden', currentView === VIEW_TRASH);
 }
 
 /**
@@ -495,9 +508,9 @@ async function init() {
     if (handle) {
       dirHandle = handle;
       // 更新 UI 为“恢复模式”
-      elements.promptTitle.textContent = `继续访问 "${handle.name}"?`;
-      elements.promptDesc.innerHTML = '为了安全，浏览器需要你再次确认访问权限。';
-      elements.openFolderBtn.textContent = '恢复访问';
+      elements.promptTitle.textContent = `Continue with "${handle.name}"?`;
+      elements.promptDesc.innerHTML = 'For security, your browser needs you to confirm access again.';
+      elements.openFolderBtn.textContent = 'Restore access';
     }
   } catch (e) {
     console.warn('DB error:', e);
@@ -540,6 +553,8 @@ function bindEvents() {
   // 侧边栏切换
   elements.sidebarToggleBtn.addEventListener('click', toggleSidebar);
   elements.closeSidebarBtn.addEventListener('click', closeSidebar);
+  elements.viewNotesBtn.addEventListener('click', () => switchView(VIEW_ACTIVE));
+  elements.viewTrashBtn.addEventListener('click', () => switchView(VIEW_TRASH));
 
   // 清除所有筛选
   elements.clearAllFiltersBtn.addEventListener('click', clearAllTagFilters);
@@ -576,7 +591,7 @@ async function handleOpenFolder() {
   } catch (e) {
     if (e.name !== 'AbortError') {
       console.error('Failed to open folder:', e);
-      alert('打开文件夹失败，请重试');
+      alert('Failed to open folder. Please try again.');
     }
   }
 }
@@ -599,8 +614,10 @@ async function finishSetupFolder() {
   elements.folderName.textContent = dirHandle.name;
   elements.folderPrompt.classList.add('hidden');
   elements.mainContent.classList.remove('hidden');
+  currentView = VIEW_ACTIVE;
+  updateViewControls();
 
-  await loadItems();
+  await loadItems(currentView);
   updateEmptyState();
 }
 
@@ -624,26 +641,41 @@ async function verifyPermission(fileHandle, readWrite) {
 }
 
 // ===== 数据加载 (R) =====
-async function loadItems() {
+async function getItemsDirectoryHandle(view) {
+  if (!dirHandle) return null;
+  if (view === VIEW_ACTIVE) return dirHandle;
+
+  try {
+    return await dirHandle.getDirectoryHandle('.trash');
+  } catch (e) {
+    if (e.name === 'NotFoundError') return null;
+    throw e;
+  }
+}
+
+async function loadItems(view = currentView) {
   if (!dirHandle) return;
 
   items = [];
   elements.cardsGrid.innerHTML = ''; // Clear current
 
   try {
-    for await (const entry of dirHandle.values()) {
-      if (entry.kind === 'file' && entry.name.endsWith('.md')) {
-        const file = await entry.getFile();
-        const text = await file.text();
-        const stat = file.lastModified;
+    const targetHandle = await getItemsDirectoryHandle(view);
+    if (targetHandle) {
+      for await (const entry of targetHandle.values()) {
+        if (entry.kind === 'file' && entry.name.endsWith('.md')) {
+          const file = await entry.getFile();
+          const text = await file.text();
+          const stat = file.lastModified;
 
-        items.push({
-          id: entry.name.replace('.md', ''), // Use filename as ID
-          content: text,
-          createdAt: stat,
-          fileName: entry.name,
-          handle: entry
-        });
+          items.push({
+            id: entry.name.replace('.md', ''), // Use filename as ID
+            content: text,
+            createdAt: stat,
+            fileName: entry.name,
+            handle: entry
+          });
+        }
       }
     }
 
@@ -654,8 +686,17 @@ async function loadItems() {
 
   } catch (e) {
     console.error('Failed to load items:', e);
-    alert('读取文件失败');
+    alert('Failed to read files.');
   }
+}
+
+async function switchView(view) {
+  if (!dirHandle || view === currentView) return;
+  currentView = view;
+  selectedTags.clear();
+  collapseForm();
+  updateViewControls();
+  await loadItems(currentView);
 }
 
 // ===== 数据写入 (C/U) =====
@@ -701,6 +742,16 @@ async function deleteFile(filename) {
     }
   } catch (e) {
     console.error('Move to trash failed:', e);
+    throw e;
+  }
+}
+
+async function deleteTrashFile(filename) {
+  try {
+    const trashHandle = await dirHandle.getDirectoryHandle('.trash');
+    await trashHandle.removeEntry(filename);
+  } catch (e) {
+    console.error('Delete from trash failed:', e);
     throw e;
   }
 }
@@ -792,7 +843,7 @@ async function addItem(title, content, tags = []) {
     updateSidebarTags();
 
   } catch (e) {
-    alert('保存失败: ' + e.message);
+    alert('Save failed: ' + e.message);
   }
 }
 
@@ -801,7 +852,7 @@ async function addLinkItem(url, tags = []) {
     const { data } = parseFrontMatter(item.content);
     return data.type === 'link' && data.url === url;
   })) {
-    alert('该链接已存在');
+    alert('This link already exists.');
     return;
   }
 
@@ -823,7 +874,7 @@ async function addLinkItem(url, tags = []) {
     // 检查标题是否已存在
     if (isTitleExists(sanitizedTitle)) {
       loadingCard.remove();
-      alert(`标题 "${rawTitle}" 已存在，该链接可能是重复的`);
+      alert(`The title "${rawTitle}" already exists. This link may be a duplicate.`);
       updateEmptyState();
       return;
     }
@@ -864,7 +915,7 @@ async function addLinkItem(url, tags = []) {
 
   } catch (e) {
     console.error('Add link failed:', e);
-    alert('添加链接失败');
+    alert('Failed to add link.');
     loadingCard.remove();
     updateEmptyState();
   } finally {
@@ -901,11 +952,12 @@ async function handleCardClick(e) {
     // 创建确认覆盖层
     const overlay = document.createElement('div');
     overlay.className = 'card-overlay';
+    const isTrashView = currentView === VIEW_TRASH;
     overlay.innerHTML = `
-      <p>移入回收站？</p>
+      <p>${isTrashView ? 'Delete permanently?' : 'Move to Trash?'}</p>
       <div class="overlay-actions">
-        <button class="overlay-btn btn-cancel">取消</button>
-        <button class="overlay-btn btn-confirm">确定</button>
+        <button class="overlay-btn btn-cancel">Cancel</button>
+        <button class="overlay-btn btn-confirm">Confirm</button>
       </div>
     `;
 
@@ -929,7 +981,11 @@ async function handleCardClick(e) {
       btnConfirm.style.opacity = '0.7';
 
       try {
-        await deleteFile(item.fileName || `${item.id}.md`);
+        if (isTrashView) {
+          await deleteTrashFile(item.fileName || `${item.id}.md`);
+        } else {
+          await deleteFile(item.fileName || `${item.id}.md`);
+        }
 
         // UI 移除动画
         items = items.filter(i => i.id !== id);
@@ -944,7 +1000,7 @@ async function handleCardClick(e) {
         }, 200);
 
       } catch (err) {
-        alert('删除失败: ' + err.message);
+        alert('Delete failed: ' + err.message);
         overlay.remove();
       }
     });
@@ -960,6 +1016,10 @@ async function handleCardClick(e) {
   const id = card.dataset.id;
   const item = items.find(i => i.id === id);
   if (!item) return;
+
+  if (currentView === VIEW_TRASH) {
+    return;
+  }
 
   // 打开编辑弹窗（链接或笔记）
   e.preventDefault();
@@ -999,7 +1059,7 @@ function openNoteEditModal(item, data, content) {
 
   // 重置保存按钮状态和错误状态
   editModal.saveBtn.disabled = false;
-  editModal.saveBtn.textContent = '保存';
+  editModal.saveBtn.textContent = 'Save';
   clearEditTitleError();
 
   editModal.modal.classList.remove('hidden');
@@ -1043,7 +1103,7 @@ async function saveEditedNote() {
 
   const newContent = editModal.textarea.value.trim();
   if (!newContent) {
-    alert('内容不能为空');
+    alert('Content cannot be empty.');
     return false;
   }
 
@@ -1055,7 +1115,7 @@ async function saveEditedNote() {
   // 重复检测（如果标题改变）
   if (sanitizedTitle !== currentEditingItem.id) {
     if (isTitleExists(sanitizedTitle, currentEditingItem.id)) {
-      showEditTitleError('该标题已存在，请使用其他标题');
+      showEditTitleError('This title already exists. Please use a different title.');
       editModal.titleInput.focus();
       return false;
     }
@@ -1065,7 +1125,7 @@ async function saveEditedNote() {
   const tags = editTagsInput.getTags();
 
   editModal.saveBtn.disabled = true;
-  editModal.saveBtn.textContent = '保存中...';
+  editModal.saveBtn.textContent = 'Saving...';
 
   try {
     const oldFilename = currentEditingItem.fileName;
@@ -1143,9 +1203,9 @@ async function saveEditedNote() {
 
   } catch (e) {
     console.error('Save failed:', e);
-    alert('保存失败: ' + e.message);
+    alert('Save failed: ' + e.message);
     editModal.saveBtn.disabled = false;
-    editModal.saveBtn.textContent = '保存';
+    editModal.saveBtn.textContent = 'Save';
     return false;
   }
 }
@@ -1157,7 +1217,7 @@ function handleEditInput() {
 
 // 更新字符计数
 function updateCharCount(content) {
-  editModal.charCount.textContent = `${content.length} 字符`;
+  editModal.charCount.textContent = `${content.length} chars`;
 }
 
 // 绑定编辑弹窗事件
@@ -1232,7 +1292,7 @@ async function saveLinkEdit() {
   };
 
   if (!formData.url) {
-    alert('链接不能为空');
+    alert('Link cannot be empty.');
     return false;
   }
 
@@ -1245,7 +1305,7 @@ async function saveLinkEdit() {
   const content = createMarkdownWithFrontMatter(formData);
 
   linkEditModal.saveBtn.disabled = true;
-  linkEditModal.saveBtn.textContent = '保存中...';
+  linkEditModal.saveBtn.textContent = 'Saving...';
 
   try {
     // 1. 保存到文件系统
@@ -1290,16 +1350,16 @@ async function saveLinkEdit() {
 
     // 重置按钮状态
     linkEditModal.saveBtn.disabled = false;
-    linkEditModal.saveBtn.textContent = '保存';
+    linkEditModal.saveBtn.textContent = 'Save';
     updateSidebarTags();
 
     return true;
 
   } catch (e) {
     console.error('Save failed:', e);
-    alert('保存失败: ' + e.message);
+    alert('Save failed: ' + e.message);
     linkEditModal.saveBtn.disabled = false;
-    linkEditModal.saveBtn.textContent = '保存';
+    linkEditModal.saveBtn.textContent = 'Save';
     return false;
   }
 }
@@ -1461,6 +1521,11 @@ function createLoadingCard() {
 }
 
 function updateEmptyState() {
+  if (currentView === VIEW_TRASH) {
+    elements.emptyStateText.textContent = 'No files in .trash';
+  } else {
+    elements.emptyStateText.textContent = 'Your links and notes will appear here';
+  }
   const hasItems = elements.cardsGrid.children.length > 0;
   elements.emptyState.classList.toggle('hidden', hasItems);
 }
@@ -1575,7 +1640,7 @@ function handleEditTitleInput() {
 
   // 排除当前正在编辑的项目
   if (isTitleExists(title, currentEditingItem?.id)) {
-    showEditTitleError('该标题已存在，请使用其他标题');
+    showEditTitleError('This title already exists. Please use a different title.');
   } else {
     clearEditTitleError();
   }

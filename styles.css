@@ -168,6 +168,36 @@ body {
   padding: 0.5rem 0.75rem;
 }
 
+.view-switch {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.view-switch-btn {
+  flex: 1;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-switch-btn:hover {
+  border-color: var(--border-color-hover);
+  background: #f8f9fa;
+}
+
+.view-switch-btn.active {
+  border-color: var(--accent-color);
+  background: rgba(26, 115, 232, 0.08);
+  color: var(--accent-color);
+}
+
 /* ===== 已选筛选区域 ===== */
 .active-filters {
   padding: 0.625rem 0.75rem;
