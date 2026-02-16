@@ -1415,14 +1415,9 @@ async function saveEditedNote() {
       const titleEl = card.querySelector('.note-title');
       if (titleEl) titleEl.textContent = sanitizedTitle;
 
-      // 更新内容
-      let body = newContent;
-      const titleMatch = newContent.match(/^#\s+(.*)\n/);
-      if (titleMatch) {
-        body = newContent.replace(/^#\s+.*\n/, '').trim();
-      }
+      // 更新内容（完整 markdown 正文直接渲染）
       const contentEl = card.querySelector('.note-content');
-      if (contentEl) contentEl.innerHTML = marked.parse(body);
+      if (contentEl) contentEl.innerHTML = marked.parse(newContent);
 
       // 更新 tags
       const tagsEl = card.querySelector('.card-tags');
@@ -1616,14 +1611,8 @@ function renderOneItem(item, prepend) {
   if (data.type === 'link') {
     card = createLinkCard({ ...data, id: item.id });
   } else {
-    // 使用 id（文件名）作为标题，并从内容中移除 heading
-    let title = item.id; // 文件名就是标题
-    let body = content;
-    const titleMatch = content.match(/^#\s+(.*)\n/);
-    if (titleMatch) {
-      // 如果内容中有 heading，从正文中移除
-      body = content.replace(/^#\s+.*\n/, '').trim();
-    }
+    // 使用 id（文件名）作为标题，正文保留完整 markdown 内容
+    const title = item.id;
 
     // 解析 tags
     const tags = data.tags ? data.tags.split(',').map(t => t.trim()) : [];
@@ -1631,7 +1620,7 @@ function renderOneItem(item, prepend) {
     card = createNoteCard({
       id: item.id,
       title: title,
-      content: body,
+      content: content,
       tags: tags
     });
   }
