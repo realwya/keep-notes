@@ -55,6 +55,19 @@
         </div>
 
         <div class="sidebar-content">
+          <div class="sidebar-search">
+            <label class="search-label" for="searchInput">Search</label>
+            <div class="search-input-wrap">
+              <input id="searchInput" class="search-input" type="search" placeholder="Search notes and links..." autocomplete="off">
+              <button id="clearSearchBtn" class="search-clear-btn hidden" type="button" aria-label="Clear search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
           <div class="view-switch">
             <button id="viewNotesBtn" class="view-switch-btn active" type="button">Notes</button>
             <button id="viewTrashBtn" class="view-switch-btn" type="button">Trash</button>

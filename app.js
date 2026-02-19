@@ -87,6 +87,8 @@ const elements = {
   closeSidebarBtn: document.getElementById('closeSidebarBtn'),
   viewNotesBtn: document.getElementById('viewNotesBtn'),
   viewTrashBtn: document.getElementById('viewTrashBtn'),
+  searchInput: document.getElementById('searchInput'),
+  clearSearchBtn: document.getElementById('clearSearchBtn'),
   tagsList: document.getElementById('tagsList'),
   activeFilters: document.getElementById('activeFilters'),
   activeFiltersList: document.getElementById('activeFiltersList'),
@@ -123,6 +125,7 @@ const pendingUrls = new Set();
 const VIEW_ACTIVE = 'active';
 const VIEW_TRASH = 'trash';
 let currentView = VIEW_ACTIVE;
+let searchQuery = '';
 
 // 标签筛选状态
 let selectedTags = new Set();  // 存储选中的标签名称
@@ -557,6 +560,31 @@ function clearAllTagFilters() {
   filterAndRenderItems();
 }
 
+function handleSearchInput(e) {
+  searchQuery = (e.target.value || '').trim().toLowerCase();
+  updateSearchClearButton();
+  filterAndRenderItems();
+}
+
+function handleSearchKeydown(e) {
+  if (e.key !== 'Escape') return;
+  if (!elements.searchInput.value) return;
+  e.preventDefault();
+  clearSearchQuery();
+}
+
+function clearSearchQuery() {
+  elements.searchInput.value = '';
+  searchQuery = '';
+  updateSearchClearButton();
+  filterAndRenderItems();
+}
+
+function updateSearchClearButton() {
+  const hasQuery = Boolean(elements.searchInput.value.trim());
+  elements.clearSearchBtn.classList.toggle('hidden', !hasQuery);
+}
+
 /**
  * 更新已选筛选显示
  */
@@ -590,20 +618,44 @@ function updateActiveFilters() {
  * 根据选中的标签筛选项目（AND 逻辑）
  * @returns {Array} 筛选后的项目
  */
-function getFilteredItems() {
+function matchesTagFilters(item) {
   if (selectedTags.size === 0) {
-    return items;
+    return true;
   }
 
-  return items.filter(item => {
-    const { data } = parseFrontMatter(item.content);
-    if (!data.tags) return false;
+  const { data } = parseFrontMatter(item.content || '');
+  if (!data.tags) return false;
 
-    const itemTags = data.tags.split(',').map(t => t.trim()).filter(t => t);
+  const itemTags = data.tags.split(',').map(t => t.trim()).filter(t => t);
 
-    // 检查项目是否包含所有选中的标签（AND 逻辑）
-    return [...selectedTags].every(selectedTag => itemTags.includes(selectedTag));
-  });
+  // 检查项目是否包含所有选中的标签（AND 逻辑）
+  return [...selectedTags].every(selectedTag => itemTags.includes(selectedTag));
+}
+
+function buildSearchText(item) {
+  const { data, content } = parseFrontMatter(item.content || '');
+  const tags = data.tags || '';
+
+  if (isLinkItemType(data.type)) {
+    return [item.id, data.title, data.description, data.url, tags]
+      .filter(Boolean)
+      .join('\n')
+      .toLowerCase();
+  }
+
+  return [item.id, content, tags]
+    .filter(Boolean)
+    .join('\n')
+    .toLowerCase();
+}
+
+function matchesSearchQuery(item) {
+  if (!searchQuery) return true;
+  return buildSearchText(item).includes(searchQuery);
+}
+
+function getFilteredItems() {
+  return items.filter(item => matchesTagFilters(item) && matchesSearchQuery(item));
 }
 
 /**
@@ -733,6 +785,9 @@ function bindEvents() {
   elements.closeSidebarBtn.addEventListener('click', closeSidebar);
   elements.viewNotesBtn.addEventListener('click', () => switchView(VIEW_ACTIVE));
   elements.viewTrashBtn.addEventListener('click', () => switchView(VIEW_TRASH));
+  elements.searchInput.addEventListener('input', handleSearchInput);
+  elements.searchInput.addEventListener('keydown', handleSearchKeydown);
+  elements.clearSearchBtn.addEventListener('click', clearSearchQuery);
 
   // 清除所有筛选
   elements.clearAllFiltersBtn.addEventListener('click', clearAllTagFilters);
@@ -773,6 +828,26 @@ function bindEvents() {
         expandNoteForm();
       }
       elements.noteContentInput.focus();
+      return;
+    }
+
+    // /: 快速聚焦搜索框（仅非输入态，且无编辑弹窗）
+    if (
+      e.key === '/' &&
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.altKey &&
+      !isTextEditingTarget(e.target) &&
+      !isNoteEditOpen() &&
+      !isLinkEditOpen()
+    ) {
+      e.preventDefault();
+      if (!elements.sidebar.classList.contains('open') && window.innerWidth <= 1024) {
+        elements.sidebar.classList.add('open');
+        showSidebarOverlay();
+      }
+      elements.searchInput.focus();
+      elements.searchInput.select();
       return;
     }
 
@@ -1740,9 +1815,7 @@ async function saveLinkEdit() {
 
 // ===== 渲染 & 工具 (复用原有逻辑) =====
 function renderItems() {
-  elements.cardsGrid.innerHTML = '';
-  items.forEach(item => renderOneItem(item, false));
-  updateEmptyState();
+  filterAndRenderItems();
 }
 
 function renderOneItem(item, prepend) {
@@ -1924,7 +1997,9 @@ function createLoadingCard() {
 }
 
 function updateEmptyState() {
-  if (currentView === VIEW_TRASH) {
+  if (searchQuery) {
+    elements.emptyStateText.textContent = 'No results found';
+  } else if (currentView === VIEW_TRASH) {
     elements.emptyStateText.textContent = 'No files in .trash';
   } else {
     elements.emptyStateText.textContent = 'Your links and notes will appear here';
