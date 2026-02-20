@@ -135,6 +135,7 @@ let allTags = [];              // 存储唯一标签及其计数: [{ name: 'tech
 let currentEditingItem = null;
 let noteEditorView = null;
 let noteEditorLoader = null;
+let popupHideTimer = null;
 
 // TagsInput 组件实例
 let editTagsInput = null;
@@ -167,6 +168,31 @@ function isNoteEditOpen() {
 
 function isLinkEditOpen() {
   return !linkEditModal.modal.classList.contains('hidden');
+}
+
+function showPopup(message, type = 'success') {
+  let popup = document.getElementById('appPopup');
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'appPopup';
+    popup.className = 'app-popup';
+    popup.setAttribute('role', 'status');
+    popup.setAttribute('aria-live', 'polite');
+    document.body.appendChild(popup);
+  }
+
+  popup.textContent = message;
+  popup.classList.remove('show', 'success', 'error');
+  popup.classList.add(type === 'error' ? 'error' : 'success');
+
+  // Force reflow to replay animation for rapid repeated copies.
+  void popup.offsetHeight;
+  popup.classList.add('show');
+
+  if (popupHideTimer) clearTimeout(popupHideTimer);
+  popupHideTimer = setTimeout(() => {
+    popup.classList.remove('show');
+  }, 1500);
 }
 
 // ===== TagsInput 组件 =====
@@ -472,6 +498,12 @@ function updateViewControls() {
   elements.addSection.classList.toggle('hidden', currentView === VIEW_TRASH);
 }
 
+function refreshFeatherIcons() {
+  if (window.feather && typeof window.feather.replace === 'function') {
+    window.feather.replace();
+  }
+}
+
 /**
  * 渲染侧边栏中的标签
  */
@@ -482,6 +514,7 @@ function renderSidebarTags() {
   if (allTags.length === 0) {
     elements.noTagsState.classList.remove('hidden');
     elements.tagsList.classList.add('hidden');
+    refreshFeatherIcons();
     return;
   }
 
@@ -496,6 +529,7 @@ function renderSidebarTags() {
 
   // 更新已选筛选显示
   updateActiveFilters();
+  refreshFeatherIcons();
 }
 
 /**
@@ -512,9 +546,7 @@ function createTagFilterElement(tag) {
 
   item.innerHTML = `
     <div class="tag-filter-checkbox">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-        <polyline points="20 6 9 17 4 12"></polyline>
-      </svg>
+      <i data-feather="check" aria-hidden="true"></i>
     </div>
     <span class="tag-filter-name">${escapeHtml(tag.name)}</span>
     <span class="tag-filter-count">${tag.count}</span>
@@ -667,6 +699,7 @@ function filterAndRenderItems() {
   elements.cardsGrid.innerHTML = '';
   filteredItems.forEach(item => renderOneItem(item, false));
   updateEmptyState();
+  refreshFeatherIcons();
 }
 
 /**
@@ -745,9 +778,20 @@ async function init() {
   } catch (e) {
     console.warn('DB error:', e);
   }
+
+  refreshFeatherIcons();
 }
 
 let eventsBound = false;
+
+// marked 默认会给任务列表 checkbox 加 disabled。
+// 这里覆盖渲染器，允许在卡片中直接交互。
+const markedRenderer = new marked.Renderer();
+markedRenderer.checkbox = function checkboxRenderer(arg) {
+  const checked = typeof arg === 'boolean' ? arg : Boolean(arg && arg.checked);
+  return `<input type="checkbox"${checked ? ' checked' : ''}>`;
+};
+marked.use({ renderer: markedRenderer });
 
 // ===== 事件绑定 =====
 function bindEvents() {
@@ -779,6 +823,7 @@ function bindEvents() {
 
   // 卡片操作
   elements.cardsGrid.addEventListener('click', handleCardClick);
+  elements.cardsGrid.addEventListener('change', handleCardCheckboxChange);
 
   // 侧边栏切换
   elements.sidebarToggleBtn.addEventListener('click', toggleSidebar);
@@ -1261,7 +1306,41 @@ async function handleCardClick(e) {
     return;
   }
 
-  // 2. 处理删除按钮点击
+  // 1.1 处理任务列表 checkbox 点击：切换并持久化到 markdown 文件
+  const taskCheckbox = e.target.closest('.note-content input[type="checkbox"]');
+  if (taskCheckbox) {
+    e.stopPropagation();
+    return;
+  }
+
+  // 2. 处理复制 markdown 按钮点击（仅复制正文，不含 front matter）
+  const copyMarkdownBtn = e.target.closest('.copy-markdown-button');
+  if (copyMarkdownBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    copyMarkdownBtn.blur();
+
+    const card = copyMarkdownBtn.closest('.card');
+    if (!card) return;
+
+    const id = card.dataset.id;
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+
+    const { content } = parseFrontMatter(item.content || '');
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API unavailable');
+      }
+      await navigator.clipboard.writeText(content);
+      showPopup('Markdown copied');
+    } catch (err) {
+      showPopup('Copy failed', 'error');
+    }
+    return;
+  }
+
+  // 3. 处理删除按钮点击
   const deleteBtn = e.target.closest('.delete-button');
   if (deleteBtn) {
     e.preventDefault();
@@ -1338,7 +1417,7 @@ async function handleCardClick(e) {
     return;
   }
 
-  // 2. 处理笔记卡片编辑点击
+  // 4. 处理笔记卡片编辑点击
   const card = e.target.closest('.card');
   if (!card) return;
 
@@ -1354,6 +1433,92 @@ async function handleCardClick(e) {
   e.preventDefault();
   e.stopPropagation();
   openEditModal(item);
+}
+
+async function handleCardCheckboxChange(e) {
+  const taskCheckbox = e.target.closest('.note-content input[type="checkbox"]');
+  if (!taskCheckbox) return;
+  e.stopPropagation();
+  await handleTaskCheckboxToggle(taskCheckbox, taskCheckbox.checked);
+}
+
+function toggleTaskInMarkdown(markdownText, taskIndex, checked) {
+  const lines = markdownText.split('\n');
+  const taskLinePattern = /^(\s*(?:[-*+]|\d+[.)])\s+)\[( |x|X)\](.*)$/;
+  let cursor = 0;
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const match = lines[i].match(taskLinePattern);
+    if (!match) continue;
+
+    if (cursor === taskIndex) {
+      const prefix = match[1];
+      const suffix = match[3];
+      lines[i] = `${prefix}[${checked ? 'x' : ' '}]${suffix}`;
+      return lines.join('\n');
+    }
+
+    cursor += 1;
+  }
+
+  return null;
+}
+
+function enhanceTaskCheckboxes(container) {
+  if (!container) return;
+  const boxes = container.querySelectorAll('input[type="checkbox"]');
+  boxes.forEach((box, index) => {
+    box.removeAttribute('disabled');
+    box.disabled = false;
+    box.dataset.taskIndex = String(index);
+  });
+}
+
+function renderNoteMarkdown(contentEl, markdownContent) {
+  const html = marked.parse(markdownContent).replace(/\sdisabled(?:="")?/g, '');
+  contentEl.innerHTML = html;
+  enhanceTaskCheckboxes(contentEl);
+}
+
+async function handleTaskCheckboxToggle(checkboxEl, explicitChecked) {
+  const card = checkboxEl.closest('.card');
+  if (!card) return;
+
+  const id = card.dataset.id;
+  const item = items.find(i => i.id === id);
+  if (!item || currentView === VIEW_TRASH) return;
+
+  const contentEl = card.querySelector('.note-content');
+  if (!contentEl) return;
+
+  const taskIndex = Number(checkboxEl.dataset.taskIndex);
+  const resolvedTaskIndex = Number.isInteger(taskIndex) && taskIndex >= 0
+    ? taskIndex
+    : Array.from(contentEl.querySelectorAll('input[type="checkbox"]')).indexOf(checkboxEl);
+  if (resolvedTaskIndex < 0) return;
+
+  const nextChecked = typeof explicitChecked === 'boolean' ? explicitChecked : !checkboxEl.checked;
+  const updatedRaw = toggleTaskInMarkdown(item.content, resolvedTaskIndex, nextChecked);
+  if (!updatedRaw || updatedRaw === item.content) return;
+
+  try {
+    const filename = item.fileName || `${item.id}.md`;
+    await saveFile(filename, updatedRaw);
+
+    const itemIndex = items.findIndex(i => i.id === item.id);
+    if (itemIndex !== -1) {
+      items[itemIndex] = {
+        ...items[itemIndex],
+        content: updatedRaw,
+        createdAt: Date.now()
+      };
+    }
+
+    const { content } = parseFrontMatter(updatedRaw);
+    renderNoteMarkdown(contentEl, content);
+  } catch (err) {
+    alert('Task update failed: ' + err.message);
+  }
 }
 
 // ===== 编辑功能 =====
@@ -1649,7 +1814,9 @@ async function saveEditedNote() {
 
       // 更新内容（完整 markdown 正文直接渲染）
       const contentEl = card.querySelector('.note-content');
-      if (contentEl) contentEl.innerHTML = marked.parse(newContent);
+      if (contentEl) {
+        renderNoteMarkdown(contentEl, newContent);
+      }
 
       // 更新 tags
       const tagsEl = card.querySelector('.card-tags');
@@ -1966,7 +2133,9 @@ function createNoteCard(data) {
   if (data.title) titleEl.textContent = data.title;
 
   const contentEl = card.querySelector('.note-content');
-  if (data.content) contentEl.innerHTML = marked.parse(data.content);
+  if (data.content) {
+    renderNoteMarkdown(contentEl, data.content);
+  }
 
   // 渲染 tags
   const tags = data.tags || [];

@@ -48,7 +48,7 @@
 }
 
 html {
-  font-size: 14px;
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -110,6 +110,9 @@ body {
 
 .brand-icon {
   flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  color: #fbbc04;
 }
 
 .brand-title {
@@ -149,6 +152,8 @@ body {
 
 .folder-button svg {
   flex-shrink: 0;
+  width: 16px;
+  height: 16px;
 }
 
 .folder-button span {
@@ -227,6 +232,11 @@ body {
 
 .search-clear-btn:hover {
   background: var(--bg-hover);
+}
+
+.search-clear-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .view-switch {
@@ -369,6 +379,8 @@ body {
 }
 
 .tag-filter-checkbox svg {
+  width: 14px;
+  height: 14px;
   opacity: 0;
   transition: opacity 0.15s ease;
 }
@@ -443,6 +455,16 @@ body {
 .sidebar-toggle:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 12px 3px rgba(60, 64, 67, 0.2);
+}
+
+.sidebar-toggle svg {
+  width: 24px;
+  height: 24px;
+}
+
+.sidebar-close svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* ===== 遮罩层（移动端） ===== */
@@ -809,6 +831,13 @@ body {
 
 .card-url svg {
   flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.card-actions .icon-button svg {
+  width: 18px;
+  height: 18px;
 }
 
 .url-text {
@@ -882,6 +911,15 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* line-clamp with form controls can block checkbox interaction in some browsers */
+.note-content:has(input[type="checkbox"]) {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  -webkit-box-orient: initial;
+  overflow: visible;
 }
 
 /* Markdown styles */
@@ -1018,6 +1056,8 @@ body {
 }
 
 .empty-state svg {
+  width: 120px;
+  height: 120px;
   opacity: 0.6;
   margin-bottom: 1.5rem;
 }
@@ -1210,6 +1250,13 @@ body {
   margin-bottom: 1.5rem;
 }
 
+.prompt-icon svg {
+  width: 64px;
+  height: 64px;
+  color: #ddd;
+  stroke-width: 1.5;
+}
+
 .prompt-content h2 {
   font-size: 1.5rem;
   font-weight: 400;
@@ -1299,6 +1346,38 @@ body {
   to {
     opacity: 1;
   }
+}
+
+/* ===== Popup Feedback ===== */
+.app-popup {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translate(-50%, 12px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2000;
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: var(--shadow-md);
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+}
+
+.app-popup.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.app-popup.success {
+  background: var(--success-color);
+}
+
+.app-popup.error {
+  background: var(--error-color);
 }
 
 /* ===== Edit Modal ===== */
@@ -1402,12 +1481,11 @@ body {
 }
 
 .edit-codemirror .cm-scroller {
-  font-family: 'Roboto Mono', 'Consolas', monospace;
   line-height: 1.6;
 }
 
 .edit-codemirror .cm-content {
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: var(--text-primary);
   caret-color: var(--text-primary);
 }
