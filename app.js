@@ -89,7 +89,10 @@ const elements = {
   viewTrashBtn: document.getElementById('viewTrashBtn'),
   searchInput: document.getElementById('searchInput'),
   clearSearchBtn: document.getElementById('clearSearchBtn'),
+  typeFiltersCard: document.getElementById('typeFiltersCard'),
+  typeFiltersList: document.getElementById('typeFiltersList'),
   tagsList: document.getElementById('tagsList'),
+  tagsSection: document.getElementById('tagsSection'),
   activeFilters: document.getElementById('activeFilters'),
   activeFiltersList: document.getElementById('activeFiltersList'),
   clearAllFiltersBtn: document.getElementById('clearAllFilters'),
@@ -113,6 +116,9 @@ const editModal = {
 const linkEditModal = {
   modal: document.getElementById('linkEditModal'),
   form: document.getElementById('linkEditForm'),
+  coverPreview: document.getElementById('linkCoverPreview'),
+  coverPreviewImage: document.getElementById('linkCoverPreviewImage'),
+  coverPreviewHint: document.getElementById('linkCoverPreviewHint'),
   tagsContainer: document.getElementById('linkEditTagsContainer'),
   saveBtn: document.querySelector('.btn-save-link-edit'),
   backdrop: document.querySelector('#linkEditModal .edit-modal-backdrop')
@@ -130,6 +136,8 @@ let searchQuery = '';
 // 标签筛选状态
 let selectedTags = new Set();  // 存储选中的标签名称
 let allTags = [];              // 存储唯一标签及其计数: [{ name: 'tech', count: 5 }, ...]
+let selectedType = null;       // 存储选中的类型（单选）：note/link/image
+let allTypes = [];             // 存储类型及其计数: [{ name: 'note', count: 3 }, ...]
 
 // 编辑相关状态
 let currentEditingItem = null;
@@ -449,7 +457,8 @@ class TagsInput {
   }
 }
 
-// ===== 侧边栏标签筛选功能 =====
+// ===== 侧边栏筛选功能 =====
+const TYPE_FILTER_ORDER = ['note', 'link', 'image'];
 
 /**
  * 从所有项目中提取唯一标签并计数
@@ -479,11 +488,33 @@ function extractAllTags() {
 }
 
 /**
- * 更新侧边栏标签列表
+ * 从所有项目中提取类型并计数
+ * 按固定顺序输出: note -> link -> image
+ * @returns {Array} 类型数组 [{ name, count }]
+ */
+function extractAllTypes() {
+  const typeMap = new Map();
+
+  items.forEach(item => {
+    const { data } = parseFrontMatter(item.content || '');
+    const type = (data.type || '').trim().toLowerCase();
+    if (!TYPE_FILTER_ORDER.includes(type)) return;
+    const count = typeMap.get(type) || 0;
+    typeMap.set(type, count + 1);
+  });
+
+  return TYPE_FILTER_ORDER
+    .filter(type => typeMap.has(type))
+    .map(type => ({ name: type, count: typeMap.get(type) || 0 }));
+}
+
+/**
+ * 更新侧边栏筛选列表
  */
 function updateSidebarTags() {
   allTags = extractAllTags();
-  renderSidebarTags();
+  allTypes = extractAllTypes();
+  renderSidebarFilters();
   refreshTagSuggestions();
 }
 
@@ -505,23 +536,33 @@ function refreshFeatherIcons() {
 }
 
 /**
- * 渲染侧边栏中的标签
+ * 渲染侧边栏中的筛选（类型 + 标签）
  */
-function renderSidebarTags() {
+function renderSidebarFilters() {
+  elements.typeFiltersList.innerHTML = '';
   elements.tagsList.innerHTML = '';
 
   // 显示/隐藏空状态
-  if (allTags.length === 0) {
+  if (allTags.length === 0 && allTypes.length === 0) {
     elements.noTagsState.classList.remove('hidden');
-    elements.tagsList.classList.add('hidden');
+    elements.typeFiltersCard.classList.add('hidden');
+    elements.tagsSection.classList.add('hidden');
+    updateActiveFilters();
     refreshFeatherIcons();
     return;
   }
 
   elements.noTagsState.classList.add('hidden');
-  elements.tagsList.classList.remove('hidden');
+  elements.typeFiltersCard.classList.toggle('hidden', allTypes.length === 0);
+  elements.tagsSection.classList.toggle('hidden', allTags.length === 0);
 
-  // 渲染每个标签
+  // 渲染类型筛选
+  allTypes.forEach(type => {
+    const typeEl = createTypeFilterElement(type);
+    elements.typeFiltersList.appendChild(typeEl);
+  });
+
+  // 渲染标签筛选
   allTags.forEach(tag => {
     const tagEl = createTagFilterElement(tag);
     elements.tagsList.appendChild(tagEl);
@@ -533,28 +574,44 @@ function renderSidebarTags() {
 }
 
 /**
- * 创建标签筛选元素
- * @param {Object} tag - { name, count }
+ * 创建筛选元素
+ * @param {Object} filter - { name, count }
+ * @param {boolean} isSelected
+ * @param {Function} onClick
  * @returns {HTMLElement}
  */
-function createTagFilterElement(tag) {
-  const isSelected = selectedTags.has(tag.name);
-
+function createFilterElement(filter, isSelected, onClick) {
   const item = document.createElement('div');
   item.className = `tag-filter-item${isSelected ? ' selected' : ''}`;
-  item.dataset.tag = tag.name;
+  item.dataset.filter = filter.name;
 
   item.innerHTML = `
     <div class="tag-filter-checkbox">
       <i data-feather="check" aria-hidden="true"></i>
     </div>
-    <span class="tag-filter-name">${escapeHtml(tag.name)}</span>
-    <span class="tag-filter-count">${tag.count}</span>
+    <span class="tag-filter-name">${escapeHtml(filter.name)}</span>
+    <span class="tag-filter-count">${filter.count}</span>
   `;
 
-  item.addEventListener('click', () => toggleTagFilter(tag.name));
+  item.addEventListener('click', onClick);
 
   return item;
+}
+
+function createTagFilterElement(tag) {
+  return createFilterElement(
+    tag,
+    selectedTags.has(tag.name),
+    () => toggleTagFilter(tag.name)
+  );
+}
+
+function createTypeFilterElement(type) {
+  return createFilterElement(
+    type,
+    selectedType === type.name,
+    () => toggleTypeFilter(type.name)
+  );
 }
 
 /**
@@ -579,16 +636,27 @@ function toggleTagFilter(tagName) {
     selectedTags.add(tagName);
   }
 
-  renderSidebarTags();
+  renderSidebarFilters();
   filterAndRenderItems();
 }
 
 /**
- * 清除所有标签筛选
+ * 切换类型选择状态（单选）
+ * @param {string} typeName
  */
-function clearAllTagFilters() {
+function toggleTypeFilter(typeName) {
+  selectedType = selectedType === typeName ? null : typeName;
+  renderSidebarFilters();
+  filterAndRenderItems();
+}
+
+/**
+ * 清除所有筛选
+ */
+function clearAllFilters() {
   selectedTags.clear();
-  renderSidebarTags();
+  selectedType = null;
+  renderSidebarFilters();
   filterAndRenderItems();
 }
 
@@ -621,13 +689,29 @@ function updateSearchClearButton() {
  * 更新已选筛选显示
  */
 function updateActiveFilters() {
-  if (selectedTags.size === 0) {
+  if (selectedTags.size === 0 && !selectedType) {
     elements.activeFilters.classList.add('hidden');
     return;
   }
 
   elements.activeFilters.classList.remove('hidden');
   elements.activeFiltersList.innerHTML = '';
+
+  if (selectedType) {
+    const typeEl = document.createElement('span');
+    typeEl.className = 'tag';
+    typeEl.innerHTML = `
+      ${escapeHtml(`type: ${selectedType}`)}
+      <span class="tag-remove" data-type="${selectedType}">&times;</span>
+    `;
+
+    typeEl.querySelector('.tag-remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleTypeFilter(selectedType);
+    });
+
+    elements.activeFiltersList.appendChild(typeEl);
+  }
 
   selectedTags.forEach(tagName => {
     const tagEl = document.createElement('span');
@@ -664,6 +748,12 @@ function matchesTagFilters(item) {
   return [...selectedTags].every(selectedTag => itemTags.includes(selectedTag));
 }
 
+function matchesTypeFilter(item) {
+  if (!selectedType) return true;
+  const { data } = parseFrontMatter(item.content || '');
+  return data.type === selectedType;
+}
+
 function buildSearchText(item) {
   const { data, content } = parseFrontMatter(item.content || '');
   const tags = data.tags || '';
@@ -687,7 +777,7 @@ function matchesSearchQuery(item) {
 }
 
 function getFilteredItems() {
-  return items.filter(item => matchesTagFilters(item) && matchesSearchQuery(item));
+  return items.filter(item => matchesTagFilters(item) && matchesTypeFilter(item) && matchesSearchQuery(item));
 }
 
 /**
@@ -768,12 +858,16 @@ async function init() {
   // 检查是否有缓存的句柄
   try {
     const handle = await db.get('dirHandle');
+    console.log('Loaded dirHandle from DB:', handle);
     if (handle) {
       dirHandle = handle;
-      // 更新 UI 为“恢复模式”
+      // 更新 UI 为"恢复模式"
       elements.promptTitle.textContent = `Continue with "${handle.name}"?`;
       elements.promptDesc.innerHTML = 'For security, your browser needs you to confirm access again.';
       elements.openFolderBtn.textContent = 'Restore access';
+      console.log('UI updated for restore mode');
+    } else {
+      console.log('No cached handle found');
     }
   } catch (e) {
     console.warn('DB error:', e);
@@ -835,7 +929,7 @@ function bindEvents() {
   elements.clearSearchBtn.addEventListener('click', clearSearchQuery);
 
   // 清除所有筛选
-  elements.clearAllFiltersBtn.addEventListener('click', clearAllTagFilters);
+  elements.clearAllFiltersBtn.addEventListener('click', clearAllFilters);
 
   // 键盘快捷键
   document.addEventListener('keydown', async (e) => {
@@ -946,6 +1040,7 @@ async function handleOpenFolder() {
     const handle = await window.showDirectoryPicker();
     dirHandle = handle;
     await db.set('dirHandle', handle);
+    console.log('Saved dirHandle to DB:', handle.name);
 
     await finishSetupFolder();
 
@@ -967,6 +1062,7 @@ async function handleChangeFolder() {
   const handle = await window.showDirectoryPicker();
   dirHandle = handle;
   await db.set('dirHandle', handle);
+  console.log('Saved dirHandle to DB (change folder):', handle.name);
 
   await finishSetupFolder();
 }
@@ -1708,12 +1804,29 @@ function openLinkEditModal(item, data) {
   linkEditModal.form.url.value = data.url || '';
   linkEditModal.form.description.value = data.description || '';
   linkEditModal.form.image.value = data.image || '';
+  updateLinkCoverPreview(linkEditModal.form.image.value);
 
   // 填充 tags
   const tags = data.tags ? data.tags.split(',').map(t => t.trim()) : [];
   linkEditTagsInput.setTags(tags);
 
   linkEditModal.modal.classList.remove('hidden');
+}
+
+function updateLinkCoverPreview(imageUrl) {
+  const trimmedUrl = (imageUrl || '').trim();
+  if (!trimmedUrl) {
+    linkEditModal.coverPreview.classList.add('hidden');
+    linkEditModal.coverPreviewImage.removeAttribute('src');
+    linkEditModal.coverPreviewHint.textContent = 'Cover preview unavailable';
+    linkEditModal.coverPreviewHint.classList.add('hidden');
+    return;
+  }
+
+  linkEditModal.coverPreview.classList.remove('hidden');
+  linkEditModal.coverPreviewHint.textContent = 'Loading preview...';
+  linkEditModal.coverPreviewHint.classList.remove('hidden');
+  linkEditModal.coverPreviewImage.src = trimmedUrl;
 }
 
 // 关闭笔记编辑弹窗（自动保存）
@@ -1878,6 +1991,20 @@ function bindEditModalEvents() {
 
 // 绑定链接编辑弹窗事件
 function bindLinkEditModalEvents() {
+  linkEditModal.form.image.addEventListener('input', (e) => {
+    updateLinkCoverPreview(e.target.value);
+  });
+
+  linkEditModal.coverPreviewImage.addEventListener('load', () => {
+    linkEditModal.coverPreviewHint.textContent = '';
+    linkEditModal.coverPreviewHint.classList.add('hidden');
+  });
+
+  linkEditModal.coverPreviewImage.addEventListener('error', () => {
+    linkEditModal.coverPreviewHint.textContent = 'Cover preview unavailable';
+    linkEditModal.coverPreviewHint.classList.remove('hidden');
+  });
+
   linkEditModal.saveBtn.addEventListener('click', async () => {
     const saved = await saveLinkEdit();
     if (saved) {

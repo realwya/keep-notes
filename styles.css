@@ -317,7 +317,62 @@ body {
   gap: 0.375rem;
 }
 
+/* ===== 类型筛选卡片 ===== */
+.filter-card {
+  background: #f8f9fa;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.filter-card.hidden {
+  display: none;
+}
+
+.filter-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.filter-card-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
 /* ===== 标签列表 ===== */
+.tags-section {
+  margin-top: 0.5rem;
+}
+
+.tags-section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tags-section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .tags-list {
   display: flex;
   flex-direction: column;
@@ -1652,6 +1707,33 @@ body {
 /* ===== Link Edit Form ===== */
 .link-edit-form {
   padding: 1rem;
+}
+
+.link-cover-preview {
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.link-cover-preview.hidden {
+  display: none;
+}
+
+.link-cover-preview img {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  background: var(--bg-card);
+}
+
+.link-cover-preview span {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 .form-group {

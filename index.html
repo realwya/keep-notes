@@ -56,24 +56,36 @@
             <button id="viewTrashBtn" class="view-switch-btn" type="button">Trash</button>
           </div>
 
-          <!-- 已选标签显示区域 -->
+          <!-- 已选筛选显示区域 -->
           <div id="activeFilters" class="active-filters hidden">
             <div class="active-filters-header">
-              <span class="active-filters-label">Selected Tags</span>
+              <span class="active-filters-label">Selected Filters</span>
               <button id="clearAllFilters" class="text-button clear-filters-btn">Clear all</button>
             </div>
             <div id="activeFiltersList" class="active-filters-list"></div>
           </div>
 
-          <!-- 标签列表 -->
-          <div id="tagsList" class="tags-list">
-            <!-- 标签项将通过 JavaScript 动态插入 -->
+          <div id="typeFiltersCard" class="filter-card hidden">
+            <div class="filter-card-header">
+              <span class="filter-card-label">Type</span>
+            </div>
+            <div id="typeFiltersList" class="filter-list"></div>
+          </div>
+
+          <!-- 标签筛选区域 -->
+          <div id="tagsSection" class="tags-section hidden">
+            <div class="tags-section-header">
+              <span class="tags-section-label">Tags</span>
+            </div>
+            <div id="tagsList" class="filter-list tags-list">
+              <!-- 标签项将通过 JavaScript 动态插入 -->
+            </div>
           </div>
 
           <!-- 空状态 -->
           <div id="noTagsState" class="no-tags-state">
-            <p>No tags yet</p>
-            <span class="text-muted">Tags will appear after you add them to notes or links</span>
+            <p>No filters available</p>
+            <span class="text-muted">Types and tags will appear after you add notes or links</span>
           </div>
         </div>
       </aside>
@@ -214,6 +226,10 @@
     <div class="edit-modal-container">
       <div class="edit-modal-body">
         <form id="linkEditForm" class="link-edit-form">
+          <div class="link-cover-preview hidden" id="linkCoverPreview">
+            <img id="linkCoverPreviewImage" alt="Cover image preview">
+            <span id="linkCoverPreviewHint">Cover preview unavailable</span>
+          </div>
           <div class="form-group">
             <label>Title</label>
             <input type="text" name="title" class="form-input">
