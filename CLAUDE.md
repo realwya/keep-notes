@@ -76,33 +76,33 @@ image: https://example.com/image.jpg
    - Handles browser security requiring re-confirmation on reload
 
 2. **File System Operations**
-   - `loadItems()` ([`app.js:212-243`](app.js#L212-L243)) - Reads all `.md` files from selected directory
-   - `saveFile()` ([`app.js:246-259`](app.js#L246-L259)) - Creates/overwrites files
-   - `deleteFile()` ([`app.js:261-290`](app.js#L261-L290)) - Moves to `.trash` folder
-   - `verifyPermission()` ([`app.js:192-209`](app.js#L192-L209)) - Handles file handle permissions
+   - `loadItems()` ([`app.js:228-260`](app.js#L228-L260)) - Reads all `.md` files from selected directory
+   - `saveFile()` ([`app.js:263-276`](app.js#L263-L276)) - Creates/overwrites files
+   - `deleteFile()` ([`app.js:278-307`](app.js#L278-L307)) - Moves to `.trash` folder
+   - `verifyPermission()` ([`app.js:209-226`](app.js#L209-L226)) - Handles file handle permissions
 
 3. **Link Processing Pipeline**
-   - `fetchLinkMetadata()` ([`app.js:607-637`](app.js#L607-L637)) - Uses Microlink API
+   - `fetchLinkMetadata()` ([`app.js:750-780`](app.js#L750-L780)) - Uses Microlink API
    - Image selection logic prioritizes: main image → screenshot → logo
    - Creates front matter with metadata
 
 4. **Note Editing System**
-   - `openEditModal()` ([`app.js:505-515`](app.js#L505-L515)) - Opens edit modal with note content
-   - `saveEditedNote()` ([`app.js:530-577`](app.js#L530-L577)) - Saves changes to filesystem and updates UI
-   - `closeEditModal()` ([`app.js:518-527`](app.js#L518-L527)) - Handles unsaved changes confirmation
-   - `autoResizeTextarea()` ([`app.js:603-617`](app.js#L603-L617)) - Dynamically adjusts textarea height
+   - `openEditModal()` ([`app.js:521-531`](app.js#L521-L531)) - Opens edit modal with note content
+   - `saveEditedNote()` ([`app.js:546-593`](app.js#L546-L593)) - Saves changes to filesystem and updates UI
+   - `closeEditModal()` ([`app.js:534-543`](app.js#L534-L543)) - Handles unsaved changes confirmation
+   - `updateCharCount()` ([`app.js:602-604`](app.js#L602-L604)) - Updates character count display
    - Full-screen modal with backdrop, keyboard shortcuts (ESC to close)
 
 5. **UI Rendering**
    - Uses HTML `<template>` elements ([`index.html:94-151`](index.html#L94-L151))
    - Masonry grid layout (CSS columns)
-   - Event delegation for card actions ([`handleCardClick()`](app.js#L410-L501))
+   - Event delegation for card actions ([`handleCardClick()`](app.js#L425-L517))
    - Custom confirmation overlay for delete (no native confirm())
-   - Edit modal with auto-resize textarea ([`styles.css:745-873`](styles.css#L745-L873))
+   - Edit modal with textarea ([`styles.css:746-873`](styles.css#L746-L873))
 
 ### Front Matter Parsing
 
-Custom YAML parser ([`app.js:523-538`](app.js#L523-L538)) - handles basic `key: value` pairs. Does not support:
+Custom YAML parser ([`app.js:666-681`](app.js#L666-L681)) - handles basic `key: value` pairs. Does not support:
 - Multi-line values
 - Nested objects
 - Arrays
@@ -110,11 +110,11 @@ Custom YAML parser ([`app.js:523-538`](app.js#L523-L538)) - handles basic `key: 
 
 ### State Management
 
-- `items` array in memory ([`app.js:96`](app.js#L96)) - synced with filesystem
-- `dirHandle` ([`app.js:95`](app.js#L95)) - cached directory handle
-- `pendingUrls` Set ([`app.js:97`](app.js#L97)) - prevents duplicate link additions
-- `currentEditingItem` ([`app.js:100`](app.js#L100)) - currently editing note
-- `isEditDirty` ([`app.js:101`](app.js#L101)) - tracks unsaved edits
+- `items` array in memory ([`app.js:97`](app.js#L97)) - synced with filesystem
+- `dirHandle` ([`app.js:96`](app.js#L96)) - cached directory handle
+- `pendingUrls` Set ([`app.js:98`](app.js#L98)) - prevents duplicate link additions
+- `currentEditingItem` ([`app.js:101`](app.js#L101)) - currently editing note
+- `isEditDirty` ([`app.js:102`](app.js#L102)) - tracks unsaved edits
 
 ## External Dependencies
 
@@ -136,13 +136,13 @@ Custom YAML parser ([`app.js:523-538`](app.js#L523-L538)) - handles basic `key: 
 ## Key Implementation Details
 
 ### Title Detection
-Notes use automatic title detection ([`detectTitle()`](app.js#L655-L675)):
-- If content starts with `# Title`, uses that as filename
-- Otherwise generates timestamp filename: `20260205143125`
+Notes use automatic title detection ([`addItem()`](app.js#L336-L362)):
+- If title input is provided, uses that as filename
+- Otherwise generates timestamp filename via [`generateTimestampTitle()`](app.js#L797-L808): `20260205143125`
 - Filename becomes the note ID and is never changed on edit
 
 ### ID Generation
-IDs are generated using timestamp + random string: [`app.js:650-652`](app.js#L650-L652)
+IDs are generated using timestamp + random string: [`app.js:793-795`](app.js#L793-L795)
 ```javascript
 Date.now().toString(36) + Math.random().toString(36).slice(2)
 ```
@@ -161,7 +161,7 @@ Note: For notes, the filename (without .md) is used as ID instead
 3. Falls back to copy+delete if `fileHandle.move()` unavailable
 
 ### Link Detection
-Single-line URL input automatically triggers link metadata fetch ([`app.js:305-307`](app.js#L305-L307))
+Single-line URL input automatically triggers link metadata fetch ([`app.js:321-324`](app.js#L321-L324))
 
 ## Styling Conventions
 
@@ -169,7 +169,7 @@ Single-line URL input automatically triggers link metadata fetch ([`app.js:305-3
 - Mobile-first responsive breakpoints at 1100px, 800px, 600px
 - Masonry layout using CSS columns (not JavaScript)
 - Skeleton loading animation for link fetch
-- Edit modal with auto-resize textarea ([`styles.css:818-831`](styles.css#L818-L831))
-  - Min-height: 200px, max-height: limited by viewport
-  - Dynamic height adjustment via JavaScript
+- Edit modal with textarea ([`styles.css:813-831`](styles.css#L813-L831))
+  - Min-height: 200px
+  - Character count display in footer
   - Backdrop with blur effect
