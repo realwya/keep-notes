@@ -326,7 +326,7 @@ class TagsInput {
       return;
     }
     if (this.tags.length >= this.maxTags) {
-      alert('You can add up to ' + this.maxTags + ' tags');
+      showPopup('You can add up to ' + this.maxTags + ' tags', 'error');
       return;
     }
 
@@ -372,7 +372,7 @@ class TagsInput {
       const tagEl = document.createElement('span');
       tagEl.className = 'tag';
       tagEl.innerHTML = `
-        ${this.escapeHtml(tag)}
+        ${escapeHtml(tag)}
         <span class="tag-remove" data-index="${index}">&times;</span>
       `;
 
@@ -467,12 +467,6 @@ class TagsInput {
   refreshSuggestions() {
     if (!this.enableSuggestions) return;
     this.renderSuggestions();
-  }
-
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
   }
 
   focus() {
@@ -881,16 +875,12 @@ async function init() {
   // 检查是否有缓存的句柄
   try {
     const handle = await db.get('dirHandle');
-    console.log('Loaded dirHandle from DB:', handle);
     if (handle) {
       dirHandle = handle;
       // 更新 UI 为"恢复模式"
       elements.promptTitle.textContent = `Continue with "${handle.name}"?`;
       elements.promptDesc.innerHTML = 'For security, your browser needs you to confirm access again.';
       elements.openFolderBtn.textContent = 'Restore access';
-      console.log('UI updated for restore mode');
-    } else {
-      console.log('No cached handle found');
     }
   } catch (e) {
     console.warn('DB error:', e);
@@ -1064,31 +1054,48 @@ async function handleOpenFolder() {
     const handle = await window.showDirectoryPicker();
     dirHandle = handle;
     await db.set('dirHandle', handle);
-    console.log('Saved dirHandle to DB:', handle.name);
 
     await finishSetupFolder();
 
   } catch (e) {
     if (e.name !== 'AbortError') {
       console.error('Failed to open folder:', e);
-      alert('Failed to open folder. Please try again.');
+      showPopup('Failed to open folder. Please try again.', 'error');
     }
   }
 }
 
 async function handleChangeFolder() {
-  // 重置状态
-  dirHandle = null;
-  items = [];
-  elements.cardsGrid.innerHTML = '';
+  const previousDirHandle = dirHandle;
+  const previousItems = [...items];
+  const previousView = currentView;
+  const previousFolderName = elements.folderName.textContent;
+  const previousSearchQuery = searchQuery;
 
-  // 触发打开流程
-  const handle = await window.showDirectoryPicker();
-  dirHandle = handle;
-  await db.set('dirHandle', handle);
-  console.log('Saved dirHandle to DB (change folder):', handle.name);
+  try {
+    const handle = await window.showDirectoryPicker();
+    await db.set('dirHandle', handle);
 
-  await finishSetupFolder();
+    dirHandle = handle;
+    await finishSetupFolder();
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+
+    console.error('Failed to change folder:', e);
+    showPopup('Failed to change folder. Please try again.', 'error');
+
+    dirHandle = previousDirHandle;
+    items = previousItems;
+    currentView = previousView;
+    searchQuery = previousSearchQuery;
+    elements.folderName.textContent = previousFolderName;
+    elements.searchInput.value = previousSearchQuery;
+
+    updateViewControls();
+    updateSidebarTags();
+    filterAndRenderItems();
+    updateEmptyState();
+  }
 }
 
 async function finishSetupFolder() {
@@ -1178,7 +1185,7 @@ async function loadItems(view = currentView) {
 
   } catch (e) {
     console.error('Failed to load items:', e);
-    alert('Failed to read files.');
+    showPopup('Failed to read files.', 'error');
   }
 }
 
@@ -1306,8 +1313,8 @@ async function handleNoteSubmit(e) {
 }
 
 async function addItem(title, content, tags = []) {
-  // 如果标题为空，使用时间戳
-  const finalTitle = title || generateTimestampTitle();
+  const baseTitle = sanitizeFilename(title || generateTimestampTitle());
+  const finalTitle = ensureUniqueTitle(baseTitle);
   const filename = `${finalTitle}.md`;
 
   // 笔记始终使用 front matter，并带 type: note
@@ -1337,7 +1344,7 @@ async function addItem(title, content, tags = []) {
     updateSidebarTags();
 
   } catch (e) {
-    alert('Save failed: ' + e.message);
+    showPopup('Save failed: ' + e.message, 'error');
   }
 }
 
@@ -1346,7 +1353,7 @@ async function addLinkItem(url, tags = []) {
     const { data } = parseFrontMatter(item.content);
     return isLinkItemType(data.type) && data.url === url;
   })) {
-    alert('This link already exists.');
+    showPopup('This link already exists.', 'error');
     return;
   }
 
@@ -1364,16 +1371,8 @@ async function addLinkItem(url, tags = []) {
     // 使用链接标题作为文件名（清理不适合文件名的字符）
     const rawTitle = metadata.title || extractReadableTitleFromUrl(url);
     const sanitizedTitle = sanitizeFilename(rawTitle);
-
-    // 检查标题是否已存在
-    if (isTitleExists(sanitizedTitle)) {
-      loadingCard.remove();
-      alert(`The title "${rawTitle}" already exists. This link may be a duplicate.`);
-      updateEmptyState();
-      return;
-    }
-
-    const filename = `${sanitizedTitle}.md`;
+    const uniqueTitle = ensureUniqueTitle(sanitizedTitle);
+    const filename = `${uniqueTitle}.md`;
 
     const frontMatterData = {
       type: getLinkTypeFromUrl(url),
@@ -1409,7 +1408,7 @@ async function addLinkItem(url, tags = []) {
 
   } catch (e) {
     console.error('Add link failed:', e);
-    alert('Failed to add link.');
+    showPopup('Failed to add link.', 'error');
     loadingCard.remove();
     updateEmptyState();
   } finally {
@@ -1528,7 +1527,7 @@ async function handleCardClick(e) {
         }, 200);
 
       } catch (err) {
-        alert('Delete failed: ' + err.message);
+        showPopup('Delete failed: ' + err.message, 'error');
         overlay.remove();
       }
     });
@@ -1595,8 +1594,9 @@ function enhanceTaskCheckboxes(container) {
 }
 
 function renderNoteMarkdown(contentEl, markdownContent) {
-  const html = marked.parse(markdownContent).replace(/\sdisabled(?:="")?/g, '');
-  contentEl.innerHTML = html;
+  const parsedHtml = marked.parse(markdownContent);
+  const sanitizedHtml = sanitizeRenderedHtml(parsedHtml).replace(/\sdisabled(?:="")?/g, '');
+  contentEl.innerHTML = sanitizedHtml;
   enhanceTaskCheckboxes(contentEl);
 }
 
@@ -1637,7 +1637,7 @@ async function handleTaskCheckboxToggle(checkboxEl, explicitChecked) {
     const { content } = parseFrontMatter(updatedRaw);
     renderNoteMarkdown(contentEl, content);
   } catch (err) {
-    alert('Task update failed: ' + err.message);
+    showPopup('Task update failed: ' + err.message, 'error');
   }
 }
 
@@ -1710,8 +1710,8 @@ function createHeadingExtension(StateField, Decoration, EditorView) {
     create(state) {
       return buildDecorations(state);
     },
-    update(_, tr) {
-      if (!tr.docChanged) return buildDecorations(tr.state);
+    update(value, tr) {
+      if (!tr.docChanged) return value;
       return buildDecorations(tr.state);
     },
     provide: (field) => EditorView.decorations.from(field)
@@ -1875,7 +1875,7 @@ async function saveEditedNote() {
 
   const newContent = getEditContent().trim();
   if (!newContent) {
-    alert('Content cannot be empty.');
+    showPopup('Content cannot be empty.', 'error');
     return false;
   }
 
@@ -1982,7 +1982,7 @@ async function saveEditedNote() {
 
   } catch (e) {
     console.error('Save failed:', e);
-    alert('Save failed: ' + e.message);
+    showPopup('Save failed: ' + e.message, 'error');
     editModal.saveBtn.disabled = false;
     editModal.saveBtn.textContent = 'Save';
     return false;
@@ -2075,19 +2075,24 @@ async function closeLinkEditModal() {
 async function saveLinkEdit() {
   if (!currentEditingItem) return false;
 
+  const rawUrl = linkEditModal.form.url.value.trim();
+  if (!rawUrl) {
+    showPopup('Link cannot be empty.', 'error');
+    return false;
+  }
+  if (!isValidUrl(rawUrl)) {
+    showPopup('Invalid URL. Only http/https links are allowed.', 'error');
+    return false;
+  }
+
   // 获取表单数据
   const formData = {
-    type: getLinkTypeFromUrl(linkEditModal.form.url.value.trim()),
+    type: getLinkTypeFromUrl(rawUrl),
     title: linkEditModal.form.title.value.trim(),
-    url: linkEditModal.form.url.value.trim(),
+    url: rawUrl,
     description: linkEditModal.form.description.value.trim(),
     image: linkEditModal.form.image.value.trim(),
   };
-
-  if (!formData.url) {
-    alert('Link cannot be empty.');
-    return false;
-  }
 
   const tags = linkEditTagsInput.getTags();
   if (tags.length > 0) {
@@ -2142,7 +2147,7 @@ async function saveLinkEdit() {
 
   } catch (e) {
     console.error('Save failed:', e);
-    alert('Save failed: ' + e.message);
+    showPopup('Save failed: ' + e.message, 'error');
     linkEditModal.saveBtn.disabled = false;
     linkEditModal.saveBtn.textContent = 'Save';
     return false;
@@ -2307,7 +2312,8 @@ function createLinkCard(data) {
   // 设置打开链接按钮的 href
   const openLinkBtn = card.querySelector('.open-link-button');
   if (openLinkBtn) {
-    openLinkBtn.href = data.url;
+    const safeUrl = withHttpProtocol(data.url);
+    openLinkBtn.href = safeUrl || '#';
   }
 
   const imageWrap = card.querySelector('.card-image');
@@ -2559,6 +2565,40 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
+function sanitizeRenderedHtml(html) {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+
+  const blockedTags = new Set(['script', 'iframe', 'object', 'embed', 'link', 'style', 'meta', 'base']);
+  const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT);
+  const toRemove = [];
+
+  while (walker.nextNode()) {
+    const el = walker.currentNode;
+    const tagName = el.tagName.toLowerCase();
+    if (blockedTags.has(tagName)) {
+      toRemove.push(el);
+      continue;
+    }
+
+    for (const attr of Array.from(el.attributes)) {
+      const name = attr.name.toLowerCase();
+      const value = attr.value.trim();
+      const lowerValue = value.toLowerCase();
+      if (name.startsWith('on')) {
+        el.removeAttribute(attr.name);
+        continue;
+      }
+      if ((name === 'href' || name === 'src') && (lowerValue.startsWith('javascript:') || lowerValue.startsWith('vbscript:'))) {
+        el.removeAttribute(attr.name);
+      }
+    }
+  }
+
+  toRemove.forEach(node => node.remove());
+  return template.innerHTML;
+}
+
 // 清理文件名中的非法字符
 function sanitizeFilename(name) {
   // 移除或替换不适合文件系统的字符
@@ -2593,6 +2633,32 @@ function generateTimestampTitle() {
   const seconds = String(now.getSeconds()).padStart(2, '0');
 
   return `${year}${month}${day}${hours}${minutes}${seconds}`;
+}
+
+function ensureUniqueTitle(baseTitle, excludeId = null) {
+  const sanitizedBase = sanitizeFilename(baseTitle || generateTimestampTitle());
+  let candidate = sanitizedBase;
+  let suffixNumber = 1;
+
+  while (isTitleExists(candidate, excludeId)) {
+    const suffix = `-${suffixNumber}`;
+    const maxBaseLength = 200 - suffix.length;
+    const base = sanitizedBase.length > maxBaseLength
+      ? sanitizedBase.slice(0, maxBaseLength).trimEnd()
+      : sanitizedBase;
+    candidate = `${base}${suffix}`;
+    suffixNumber += 1;
+  }
+
+  return candidate;
+}
+
+function withHttpProtocol(rawUrl) {
+  const value = (rawUrl || '').trim();
+  if (!value) return '';
+  if (isValidUrl(value)) return value;
+  const prefixed = `https://${value}`;
+  return isValidUrl(prefixed) ? prefixed : '';
 }
 
 // ===== 标题验证相关 =====
