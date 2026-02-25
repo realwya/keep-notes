@@ -209,6 +209,7 @@ function handleSearchKeydown(e) {
   if (e.key !== 'Escape') return;
   e.preventDefault();
   e.stopPropagation();
+  clearSearchQuery();
   elements.searchInput.blur();
 }
 
