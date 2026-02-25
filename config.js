@@ -79,6 +79,9 @@ const elements = {
   closeNoteForm: document.getElementById('closeNoteForm'),
   saveNoteBtn: document.getElementById('saveNoteBtn'),
 
+  // Type capsule filters
+  typeCapsules: document.getElementById('typeCapsules'),
+
   // Cards
   cardsGrid: document.getElementById('cardsGrid'),
   emptyState: document.getElementById('emptyState'),
@@ -98,8 +101,8 @@ const elements = {
   viewTrashBtn: document.getElementById('viewTrashBtn'),
   searchInput: document.getElementById('searchInput'),
   clearSearchBtn: document.getElementById('clearSearchBtn'),
-  typeFiltersCard: document.getElementById('typeFiltersCard'),
-  typeFiltersList: document.getElementById('typeFiltersList'),
+  typeFiltersCard: null,
+  typeFiltersList: null,
   tagsList: document.getElementById('tagsList'),
   tagsSection: document.getElementById('tagsSection'),
   activeFilters: document.getElementById('activeFilters'),

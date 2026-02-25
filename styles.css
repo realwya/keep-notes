@@ -774,6 +774,47 @@ body {
   color: var(--text-primary);
 }
 
+/* ===== 类型胶囊筛选 ===== */
+.type-capsules {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.type-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.type-capsule svg {
+  width: 16px;
+  height: 16px;
+}
+
+.type-capsule:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color-hover);
+}
+
+.type-capsule.active {
+  background: var(--accent-light-bg);
+  border-color: var(--accent-light-border);
+  color: var(--accent-light-text);
+}
+
 /* ===== 卡片区域 ===== */
 .cards-section {
   margin-top: 1rem;

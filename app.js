@@ -96,6 +96,9 @@ function bindEvents() {
   // Clear all filters
   elements.clearAllFiltersBtn.addEventListener('click', clearAllFilters);
 
+  // Type capsule filters
+  initTypeCapsules();
+
   // Keyboard shortcuts
   document.addEventListener('keydown', async (e) => {
     // ESC closes sidebar

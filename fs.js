@@ -154,8 +154,10 @@ async function switchView(view) {
   if (!dirHandle || view === currentView) return;
   currentView = view;
   selectedTags.clear();
+  selectedType = null;
   collapseForm();
   updateViewControls();
+  updateTypeCapsules();
   await loadItems(currentView);
 }
 
