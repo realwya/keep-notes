@@ -56,6 +56,7 @@ function updateSidebarTags() {
   allTags = extractAllTags();
   allTypes = extractAllTypes();
   renderSidebarFilters();
+  updateTypeCapsules();
   refreshTagSuggestions();
 }
 
@@ -68,6 +69,9 @@ function updateViewControls() {
   elements.viewNotesBtn.classList.toggle('active', currentView === VIEW_ACTIVE);
   elements.viewTrashBtn.classList.toggle('active', currentView === VIEW_TRASH);
   elements.addSection.classList.toggle('hidden', currentView === VIEW_TRASH);
+  if (elements.typeCapsules) {
+    elements.typeCapsules.classList.toggle('hidden', currentView === VIEW_TRASH);
+  }
 }
 
 function refreshFeatherIcons() {
@@ -80,13 +84,11 @@ function refreshFeatherIcons() {
  * 渲染侧边栏中的筛选（类型 + 标签）
  */
 function renderSidebarFilters() {
-  elements.typeFiltersList.innerHTML = '';
   elements.tagsList.innerHTML = '';
 
   // Show/hide empty state
   if (allTags.length === 0 && allTypes.length === 0) {
     elements.noTagsState.classList.remove('hidden');
-    elements.typeFiltersCard.classList.add('hidden');
     elements.tagsSection.classList.add('hidden');
     updateActiveFilters();
     refreshFeatherIcons();
@@ -94,14 +96,7 @@ function renderSidebarFilters() {
   }
 
   elements.noTagsState.classList.add('hidden');
-  elements.typeFiltersCard.classList.toggle('hidden', allTypes.length === 0);
   elements.tagsSection.classList.toggle('hidden', allTags.length === 0);
-
-  // Render type filters
-  allTypes.forEach(type => {
-    const typeEl = createTypeFilterElement(type);
-    elements.typeFiltersList.appendChild(typeEl);
-  });
 
   // Render tag filters
   allTags.forEach(tag => {
@@ -156,14 +151,6 @@ function createTagFilterElement(tag) {
   );
 }
 
-function createTypeFilterElement(type) {
-  return createFilterElement(
-    type,
-    selectedType === type.name,
-    () => toggleTypeFilter(type.name)
-  );
-}
-
 /**
  * 切换标签选择状态
  * @param {string} tagName
@@ -186,6 +173,7 @@ function toggleTagFilter(tagName) {
 function toggleTypeFilter(typeName) {
   selectedType = selectedType === typeName ? null : typeName;
   renderSidebarFilters();
+  updateTypeCapsules();
   filterAndRenderItems();
 }
 
@@ -196,6 +184,7 @@ function clearAllFilters() {
   selectedTags.clear();
   selectedType = null;
   renderSidebarFilters();
+  updateTypeCapsules();
   filterAndRenderItems();
 }
 
@@ -271,6 +260,39 @@ function updateActiveFilters() {
 
     tagEl.appendChild(removeBtn);
     elements.activeFiltersList.appendChild(tagEl);
+  });
+}
+
+/**
+ * 更新类型胶囊按钮的显示/隐藏和选中状态
+ */
+function updateTypeCapsules() {
+  const capsules = elements.typeCapsules;
+  if (!capsules) return;
+
+  // Show capsules only when there are items with types
+  capsules.classList.toggle('hidden', allTypes.length === 0);
+
+  capsules.querySelectorAll('.type-capsule').forEach(btn => {
+    const type = btn.dataset.type;
+    const typeData = allTypes.find(t => t.name === type);
+    btn.classList.toggle('active', selectedType === type);
+    // Hide capsule if no items of this type exist
+    btn.classList.toggle('hidden', !typeData);
+  });
+}
+
+/**
+ * 初始化类型胶囊按钮点击事件
+ */
+function initTypeCapsules() {
+  const capsules = elements.typeCapsules;
+  if (!capsules) return;
+
+  capsules.addEventListener('click', (e) => {
+    const btn = e.target.closest('.type-capsule');
+    if (!btn) return;
+    toggleTypeFilter(btn.dataset.type);
   });
 }
 
