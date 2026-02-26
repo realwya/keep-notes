@@ -40,10 +40,16 @@
         </div>
       </div>
 
-      <div class="view-switch">
-        <button id="viewNotesBtn" class="view-switch-btn active" type="button" aria-label="Show notes view">Notes</button>
-        <button id="viewTrashBtn" class="view-switch-btn" type="button" aria-label="Show trash view">Trash</button>
-      </div>
+      <nav class="view-switch">
+        <button id="viewNotesBtn" class="view-switch-btn active" type="button" aria-label="Show notes view">
+          <i data-feather="file-text" aria-hidden="true"></i>
+          <span>Notes</span>
+        </button>
+        <button id="viewTrashBtn" class="view-switch-btn" type="button" aria-label="Show trash view">
+          <i data-feather="trash-2" aria-hidden="true"></i>
+          <span>Trash</span>
+        </button>
+      </nav>
 
       <!-- 已选筛选显示区域 -->
       <div id="activeFilters" class="active-filters hidden">
@@ -138,6 +144,10 @@
           <i data-feather="image" aria-hidden="true"></i>
           <span>Images</span>
         </button>
+        <button id="emptyTrashBtn" class="type-capsule empty-trash-capsule hidden" type="button" aria-label="Empty trash">
+          <i data-feather="trash-2" aria-hidden="true"></i>
+          <span>Empty Trash</span>
+        </button>
       </div>
 
       <!-- 卡片网格 - 瀑布流 -->
@@ -174,6 +184,9 @@
         <button class="icon-button copy-link-button" title="Copy link" aria-label="Copy link">
           <i data-feather="link" aria-hidden="true"></i>
         </button>
+        <button class="icon-button restore-button" title="Restore" aria-label="Restore item">
+          <i data-feather="rotate-ccw" aria-hidden="true"></i>
+        </button>
         <button class="icon-button delete-button" title="Delete" aria-label="Delete item">
           <i data-feather="trash-2" aria-hidden="true"></i>
         </button>
@@ -203,6 +216,9 @@
       <div class="card-actions">
         <button class="icon-button copy-markdown-button" title="Copy markdown" aria-label="Copy markdown">
           <i data-feather="copy" aria-hidden="true"></i>
+        </button>
+        <button class="icon-button restore-button" title="Restore" aria-label="Restore item">
+          <i data-feather="rotate-ccw" aria-hidden="true"></i>
         </button>
         <button class="icon-button delete-button" title="Delete" aria-label="Delete item">
           <i data-feather="trash-2" aria-hidden="true"></i>

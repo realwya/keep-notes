@@ -370,6 +370,11 @@ async function fetchLinkMetadata(url) {
   }
 }
 
+function updateTrashActions() {
+  const show = currentView === VIEW_TRASH && items.length > 0;
+  elements.emptyTrashBtn.classList.toggle('hidden', !show);
+}
+
 function updateEmptyState() {
   if (searchQuery) {
     elements.emptyStateText.textContent = 'No results found';
