@@ -96,6 +96,9 @@ function bindEvents() {
   // Clear all filters
   elements.clearAllFiltersBtn.addEventListener('click', clearAllFilters);
 
+  // Empty trash
+  elements.emptyTrashBtn.addEventListener('click', handleEmptyTrash);
+
   // Type capsule filters
   initTypeCapsules();
 
@@ -321,6 +324,27 @@ async function addLinkItem(url, tags = []) {
   }
 }
 
+// ===== 清空回收站 =====
+async function handleEmptyTrash() {
+  if (items.length === 0) return;
+
+  const confirmed = window.confirm(`Permanently delete all ${items.length} item(s) in Trash? This cannot be undone.`);
+  if (!confirmed) return;
+
+  try {
+    await deleteAllTrashFiles();
+    items = [];
+    elements.cardsGrid.innerHTML = '';
+    updateEmptyState();
+    updateTrashActions();
+    updateTypeCapsules();
+    updateSidebarTags();
+    showPopup('Trash emptied');
+  } catch (err) {
+    showPopup('Empty trash failed: ' + err.message, 'error');
+  }
+}
+
 // ===== 卡片交互处理 =====
 async function handleCardClick(e) {
   // 1. Handle open-link button — let the link open normally
@@ -402,7 +426,42 @@ async function handleCardClick(e) {
     return;
   }
 
-  // 3. Handle delete button click
+  // 3. Handle restore button click
+  const restoreBtn = e.target.closest('.restore-button');
+  if (restoreBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    restoreBtn.blur();
+
+    const card = restoreBtn.closest('.card');
+    const id = card.dataset.id;
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+
+    try {
+      await restoreFile(item.fileName || `${item.id}.md`);
+
+      items = items.filter(i => i.id !== id);
+      card.style.transition = 'all 0.2s ease';
+      card.style.opacity = '0';
+      card.style.transform = 'scale(0.9)';
+
+      setTimeout(() => {
+        if (card.parentNode) card.remove();
+        updateEmptyState();
+        updateTrashActions();
+        updateTypeCapsules();
+        updateSidebarTags();
+      }, 200);
+
+      showPopup('Restored');
+    } catch (err) {
+      showPopup('Restore failed: ' + err.message, 'error');
+    }
+    return;
+  }
+
+  // 4. Handle delete button click
   const deleteBtn = e.target.closest('.delete-button');
   if (deleteBtn) {
     e.preventDefault();
@@ -472,6 +531,7 @@ async function handleCardClick(e) {
         setTimeout(() => {
           if (card.parentNode) card.remove();
           updateEmptyState();
+          updateTrashActions();
           updateSidebarTags();
         }, 200);
 

@@ -69,9 +69,7 @@ function updateViewControls() {
   elements.viewNotesBtn.classList.toggle('active', currentView === VIEW_ACTIVE);
   elements.viewTrashBtn.classList.toggle('active', currentView === VIEW_TRASH);
   elements.addSection.classList.toggle('hidden', currentView === VIEW_TRASH);
-  if (elements.typeCapsules) {
-    elements.typeCapsules.classList.toggle('hidden', currentView === VIEW_TRASH);
-  }
+  updateTrashActions();
 }
 
 function refreshFeatherIcons() {
@@ -270,14 +268,17 @@ function updateTypeCapsules() {
   const capsules = elements.typeCapsules;
   if (!capsules) return;
 
-  // Show capsules only when there are items with types
-  capsules.classList.toggle('hidden', allTypes.length === 0);
+  const isTrash = currentView === VIEW_TRASH;
+  const hasTrashItems = isTrash && items.length > 0;
 
-  capsules.querySelectorAll('.type-capsule').forEach(btn => {
+  // Show container when types exist or trash has items (for empty-trash button)
+  const hasVisibleContent = allTypes.length > 0 || hasTrashItems;
+  capsules.classList.toggle('hidden', !hasVisibleContent);
+
+  capsules.querySelectorAll('.type-capsule[data-type]').forEach(btn => {
     const type = btn.dataset.type;
     const typeData = allTypes.find(t => t.name === type);
     btn.classList.toggle('active', selectedType === type);
-    // Hide capsule if no items of this type exist
     btn.classList.toggle('hidden', !typeData);
   });
 }

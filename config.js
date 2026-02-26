@@ -86,6 +86,7 @@ const elements = {
   cardsGrid: document.getElementById('cardsGrid'),
   emptyState: document.getElementById('emptyState'),
   emptyStateText: document.querySelector('#emptyState p'),
+  emptyTrashBtn: document.getElementById('emptyTrashBtn'),
 
   // Templates
   linkCardTemplate: document.getElementById('linkCardTemplate'),

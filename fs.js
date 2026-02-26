@@ -156,6 +156,7 @@ async function switchView(view) {
   selectedTags.clear();
   selectedType = null;
   collapseForm();
+  elements.cardsGrid.classList.toggle('trash-view', view === VIEW_TRASH);
   updateViewControls();
   updateTypeCapsules();
   await loadItems(currentView);
@@ -205,6 +206,41 @@ async function deleteFile(filename) {
   } catch (e) {
     console.error('Move to trash failed:', e);
     throw e;
+  }
+}
+
+async function restoreFile(filename) {
+  try {
+    const trashHandle = await dirHandle.getDirectoryHandle('.trash');
+    const fileHandle = await trashHandle.getFileHandle(filename);
+
+    if (fileHandle.move) {
+      await fileHandle.move(dirHandle);
+    } else {
+      const file = await fileHandle.getFile();
+      const content = await file.text();
+
+      const newFileHandle = await dirHandle.getFileHandle(filename, { create: true });
+      const writable = await newFileHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+
+      await trashHandle.removeEntry(filename);
+    }
+  } catch (e) {
+    console.error('Restore file failed:', e);
+    throw e;
+  }
+}
+
+async function deleteAllTrashFiles() {
+  const trashHandle = await dirHandle.getDirectoryHandle('.trash');
+  const entries = [];
+  for await (const entry of trashHandle.values()) {
+    if (entry.kind === 'file') entries.push(entry.name);
+  }
+  for (const name of entries) {
+    await trashHandle.removeEntry(name);
   }
 }
 
