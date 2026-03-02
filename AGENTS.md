@@ -45,6 +45,7 @@ bash tests/feather-icons.test.sh```
 - **Variables**: Use existing CSS vars (`--bg-primary`, `--radius-md`, etc.)
 - **Responsive**: Mobile-first, breakpoints at 1100px, 800px, 600px
 - **Shadows**: Use existing shadow variables, not arbitrary values
+- **Card actions styling**: Keep button visuals centralized in `.card-actions .icon-button`; do not add per-button standalone hover/focus rules unless they only override semantic CSS variables (for example `--action-hover-fg`)
 
 ### HTML (index.html)
 
@@ -108,6 +109,14 @@ Current checks in this repo:
 - **Sidebar**: Search + type/tag filters, active filter chips, mobile drawer + overlay behavior
 - **Rich content**: Markdown task checkboxes stay interactive and persist back to source markdown
 - **Empty states**: Show helpful messaging with appropriate icons
+
+### Card Action Consistency
+
+- **Base class**: Every card action control must use `.icon-button` inside `.card-actions` (no custom button base class for a single action)
+- **Interaction consistency**: Use shared `.card-actions .icon-button` hover/focus-visible behavior for background, transition, and focus ring
+- **Semantic color overrides**: Per-action differences should only override semantic vars such as `--action-hover-fg` (example: archive/restore), not duplicate full hover blocks
+- **Visibility by view state**: Keep action visibility controlled by view container classes (`.active-view`, `.archive-view`, `.trash-view`) rather than inline styles or JS-only style mutations
+- **Accessibility**: Every action button/link must include both `title` and `aria-label`, and keep Feather icon markup (`<i data-feather="...">`)
 
 ## Security
 
