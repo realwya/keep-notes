@@ -217,7 +217,7 @@ body {
   height: 2.25rem;
   padding: 0.5rem 2rem 0.5rem 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 0.8125rem;
@@ -425,6 +425,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
+}
+
+.tags-empty-state {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 .tag-filter-item {
@@ -895,6 +903,7 @@ body {
 .card-actions {
   display: flex;
   align-items: center;
+  gap: 0.25rem;
   padding: 0.25rem 0.5rem;
   background: var(--bg-card);
   visibility: hidden;
@@ -902,19 +911,36 @@ body {
   opacity: 0;
 }
 
+.card-actions .icon-button {
+  --action-fg: var(--text-secondary);
+  --action-hover-fg: var(--text-primary);
+  --action-focus-ring: 0 0 0 3px rgba(26, 115, 232, 0.18);
+
+  color: var(--action-fg);
+  border: 1px solid transparent;
+  outline: none;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.card-actions .icon-button:hover,
+.card-actions .icon-button:focus-visible {
+  color: var(--action-hover-fg);
+  background: var(--bg-hover);
+}
+
+.card-actions .icon-button:focus-visible {
+  box-shadow: var(--action-focus-ring);
+}
+
 .card:hover .card-actions {
   visibility: visible;
   opacity: 1;
 }
 
-.delete-button:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}
-
 /* Restore button: hidden by default, visible in trash view */
 .restore-button {
   display: none;
+  --action-hover-fg: var(--success-color);
 }
 
 .trash-view .restore-button,
@@ -922,23 +948,14 @@ body {
   display: flex;
 }
 
-.restore-button:hover {
-  color: var(--success-color);
-  background: var(--bg-hover);
-}
-
 /* Archive button: visible only in active notes view */
 .archive-button {
   display: none;
+  --action-hover-fg: var(--accent-light-text);
 }
 
 .active-view .archive-button {
   display: flex;
-}
-
-.archive-button:hover {
-  color: var(--accent-light-text);
-  background: var(--bg-hover);
 }
 
 /* ===== 链接卡片 ===== */
@@ -1031,7 +1048,6 @@ body {
 
 .x-post-embed {
   margin-bottom: 0.5rem;
-  border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
   background: var(--bg-card);

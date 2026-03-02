@@ -109,6 +109,7 @@ const elements = {
   typeFiltersList: null,
   tagsList: document.getElementById('tagsList'),
   tagsSection: document.getElementById('tagsSection'),
+  tagsEmptyState: document.getElementById('tagsEmptyState'),
   activeFilters: document.getElementById('activeFilters'),
   activeFiltersList: document.getElementById('activeFiltersList'),
   clearAllFiltersBtn: document.getElementById('clearAllFilters'),

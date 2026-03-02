@@ -84,24 +84,20 @@ function refreshFeatherIcons() {
  */
 function renderSidebarFilters() {
   elements.tagsList.innerHTML = '';
+  const hasTags = allTags.length > 0;
 
-  // Show/hide empty state
-  if (allTags.length === 0 && allTypes.length === 0) {
-    elements.noTagsState.classList.remove('hidden');
-    elements.tagsSection.classList.add('hidden');
-    updateActiveFilters();
-    refreshFeatherIcons();
-    return;
-  }
-
+  // Deprecated global empty state: keep hidden and use tags section empty state instead.
   elements.noTagsState.classList.add('hidden');
-  elements.tagsSection.classList.toggle('hidden', allTags.length === 0);
+  elements.tagsSection.classList.remove('hidden');
+  elements.tagsEmptyState.classList.toggle('hidden', hasTags);
 
   // Render tag filters
-  allTags.forEach(tag => {
-    const tagEl = createTagFilterElement(tag);
-    elements.tagsList.appendChild(tagEl);
-  });
+  if (hasTags) {
+    allTags.forEach(tag => {
+      const tagEl = createTagFilterElement(tag);
+      elements.tagsList.appendChild(tagEl);
+    });
+  }
 
   // Update active filter display
   updateActiveFilters();
