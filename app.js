@@ -31,6 +31,7 @@ async function init() {
   bindEvents();
   bindEditModalEvents();
   bindLinkEditModalEvents();
+  scheduleNoteEditorWarmup();
 
   // Check for cached directory handle
   try {

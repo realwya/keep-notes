@@ -154,6 +154,21 @@ async function ensureNoteEditor() {
   return noteEditorLoader;
 }
 
+function scheduleNoteEditorWarmup() {
+  const runWarmup = () => {
+    ensureNoteEditor().catch((error) => {
+      console.warn('Note editor warmup failed:', error);
+    });
+  };
+
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(runWarmup, { timeout: 1200 });
+    return;
+  }
+
+  setTimeout(runWarmup, 300);
+}
+
 // Open note edit modal
 async function openNoteEditModal(item, data, content) {
   // Populate title (item.id = filename without extension)
@@ -172,8 +187,8 @@ async function openNoteEditModal(item, data, content) {
   editModal.saveBtn.textContent = 'Save';
   clearEditTitleError();
 
-  editModal.modal.classList.remove('hidden');
   await ensureNoteEditor();
+  editModal.modal.classList.remove('hidden');
   setEditContent(content);
   focusEditContent();
 }
