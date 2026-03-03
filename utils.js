@@ -92,10 +92,62 @@ function ensureXWidgetsLoaded() {
   return xWidgetsLoadPromise;
 }
 
+function warmupXPostEmbedding() {
+  ensureXWidgetsLoaded().catch(() => {
+    // Best effort warmup; rendering path still handles failures.
+  });
+}
+
 function renderXPostEmbed(container, xPostId, postUrl) {
+  const cachedTweet = xPostEmbedCache.get(xPostId);
+  if (cachedTweet) {
+    container.appendChild(cachedTweet);
+    return;
+  }
+
   const skeleton = document.createElement('div');
-  skeleton.className = 'x-post-skeleton skeleton';
+  skeleton.className = 'x-post-skeleton';
   skeleton.setAttribute('aria-hidden', 'true');
+
+  const skeletonHeader = document.createElement('div');
+  skeletonHeader.className = 'x-post-skeleton-header';
+
+  const skeletonAvatar = document.createElement('span');
+  skeletonAvatar.className = 'x-post-skeleton-avatar skeleton';
+
+  const skeletonMeta = document.createElement('div');
+  skeletonMeta.className = 'x-post-skeleton-meta';
+
+  const skeletonName = document.createElement('span');
+  skeletonName.className = 'x-post-skeleton-name skeleton';
+  const skeletonHandle = document.createElement('span');
+  skeletonHandle.className = 'x-post-skeleton-handle skeleton';
+  skeletonMeta.append(skeletonName, skeletonHandle);
+
+  const skeletonTime = document.createElement('span');
+  skeletonTime.className = 'x-post-skeleton-time skeleton';
+  skeletonHeader.append(skeletonAvatar, skeletonMeta, skeletonTime);
+
+  const skeletonContent = document.createElement('div');
+  skeletonContent.className = 'x-post-skeleton-content';
+  const line1 = document.createElement('span');
+  line1.className = 'x-post-skeleton-line skeleton';
+  const line2 = document.createElement('span');
+  line2.className = 'x-post-skeleton-line skeleton short';
+  skeletonContent.append(line1, line2);
+
+  const skeletonMedia = document.createElement('div');
+  skeletonMedia.className = 'x-post-skeleton-media skeleton';
+
+  const skeletonActions = document.createElement('div');
+  skeletonActions.className = 'x-post-skeleton-actions';
+  for (let i = 0; i < 4; i++) {
+    const action = document.createElement('span');
+    action.className = 'x-post-skeleton-action skeleton';
+    skeletonActions.appendChild(action);
+  }
+
+  skeleton.append(skeletonHeader, skeletonContent, skeletonMedia, skeletonActions);
   container.appendChild(skeleton);
 
   const fallbackLink = document.createElement('a');
@@ -113,7 +165,10 @@ function renderXPostEmbed(container, xPostId, postUrl) {
     }))
     .then(tweetEl => {
       skeleton.remove();
-      if (tweetEl) fallbackLink.remove();
+      if (tweetEl) {
+        fallbackLink.remove();
+        xPostEmbedCache.set(xPostId, tweetEl);
+      }
     })
     .catch(error => {
       skeleton.remove();

@@ -984,9 +984,87 @@ body {
 
 .x-post-skeleton {
   width: calc(100% - 2rem);
-  /* offset for margin: 1rem on each side */
-  height: 18rem;
   margin: 1rem;
+  padding: 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--bg-primary);
+}
+
+.x-post-skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.75rem;
+}
+
+.x-post-skeleton-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.x-post-skeleton-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.x-post-skeleton-name {
+  display: block;
+  width: 7rem;
+  height: 0.75rem;
+}
+
+.x-post-skeleton-handle {
+  display: block;
+  width: 5rem;
+  height: 0.625rem;
+}
+
+.x-post-skeleton-time {
+  width: 2.5rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.x-post-skeleton-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.x-post-skeleton-line {
+  display: block;
+  width: 100%;
+  height: 0.7rem;
+}
+
+.x-post-skeleton-line.short {
+  width: 72%;
+}
+
+.x-post-skeleton-media {
+  width: 100%;
+  height: 10.5rem;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.x-post-skeleton-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.x-post-skeleton-action {
+  width: 2rem;
+  height: 0.625rem;
+  border-radius: 999px;
 }
 
 .image-link-card .card-image {
@@ -1262,7 +1340,16 @@ body {
   }
 
   .x-post-skeleton {
-    height: 14rem;
+    padding: 0.75rem;
+  }
+
+  .x-post-skeleton-avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .x-post-skeleton-media {
+    height: 8.5rem;
   }
 
   .edit-textarea {

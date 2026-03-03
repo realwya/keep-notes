@@ -3,24 +3,48 @@ function renderItems() {
   filterAndRenderItems();
 }
 
-function renderOneItem(item, prepend) {
+function getCardCacheKey(item) {
+  return `${currentView}:${item.id}`;
+}
+
+function getCardSignature(item) {
+  return item.content || '';
+}
+
+function buildCardElement(item) {
   const { data, content } = getItemParsed(item);
-  let card;
-
   if (isLinkItemType(data.type)) {
-    card = createLinkCard({ ...data, id: item.id });
-  } else {
-    // Use id (filename) as title, keep full markdown body
-    const title = item.id;
+    return createLinkCard({ ...data, id: item.id });
+  }
 
-    // Parse tags
-    const tags = data.tags ? data.tags.split(',').map(t => t.trim()) : [];
+  // Use id (filename) as title, keep full markdown body
+  const title = item.id;
 
-    card = createNoteCard({
-      id: item.id,
-      title: title,
-      content: content,
-      tags: tags
+  // Parse tags
+  const tags = data.tags ? data.tags.split(',').map(t => t.trim()) : [];
+
+  return createNoteCard({
+    id: item.id,
+    title: title,
+    content: content,
+    tags: tags
+  });
+}
+
+function renderOneItem(item, prepend) {
+  const cacheKey = getCardCacheKey(item);
+  const signature = getCardSignature(item);
+  const cached = cardRenderCache.get(cacheKey);
+
+  let card = cached && cached.signature === signature
+    ? cached.element
+    : null;
+
+  if (!card) {
+    card = buildCardElement(item);
+    cardRenderCache.set(cacheKey, {
+      signature,
+      element: card
     });
   }
 

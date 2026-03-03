@@ -32,6 +32,7 @@ async function init() {
   bindEditModalEvents();
   bindLinkEditModalEvents();
   scheduleNoteEditorWarmup();
+  warmupXPostEmbedding();
 
   // Check for cached directory handle
   try {

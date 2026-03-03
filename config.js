@@ -163,6 +163,8 @@ let noteEditorView = null;
 let noteEditorLoader = null;
 let popupHideTimer = null;
 let xWidgetsLoadPromise = null;
+const xPostEmbedCache = new Map();
+const cardRenderCache = new Map();
 
 // TagsInput component instances
 let editTagsInput = null;
