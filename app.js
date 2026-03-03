@@ -126,6 +126,21 @@ function bindEvents() {
       return;
     }
 
+    // Cmd/Ctrl + B: collapse/expand sidebar
+    if (
+      e.key.toLowerCase() === 'b' &&
+      (e.metaKey || e.ctrlKey) &&
+      !e.altKey &&
+      !e.shiftKey &&
+      !isTextEditingTarget(e.target) &&
+      !isNoteEditOpen() &&
+      !isLinkEditOpen()
+    ) {
+      e.preventDefault();
+      toggleSidebarCollapse();
+      return;
+    }
+
     // n: Focus main input (only when not editing and no modal open)
     if (
       e.key.toLowerCase() === 'n' &&
