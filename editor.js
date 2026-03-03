@@ -115,7 +115,6 @@ async function ensureNoteEditor() {
             EditorView.lineWrapping,
             EditorView.updateListener.of((update) => {
               if (update.docChanged) {
-                updateCharCount(update.state.doc.toString());
                 editModal.textarea.value = update.state.doc.toString();
               }
             }),
@@ -176,7 +175,7 @@ async function openNoteEditModal(item, data, content) {
 
   // Populate content (without front matter)
   setEditContent(content);
-  updateCharCount(content);
+  updateEditedTime(item.createdAt);
 
   // Populate tags
   const tags = data.tags ? data.tags.split(',').map(t => t.trim()) : [];
@@ -310,13 +309,15 @@ async function saveEditedNote() {
     // Update in-memory state
     const index = items.findIndex(i => i.id === currentEditingItem.id);
     if (index !== -1) {
+      const savedAt = Date.now();
       items[index] = {
         ...items[index],
         id: sanitizedTitle,
         content: finalContent,
-        createdAt: Date.now(),
+        createdAt: savedAt,
         fileName: newFilename
       };
+      updateEditedTime(savedAt);
     }
 
     // Update UI
@@ -361,14 +362,22 @@ async function saveEditedNote() {
   }
 }
 
-// Input listener
-function handleEditInput() {
-  updateCharCount(getEditContent());
+function formatEditedTime(timestamp) {
+  const date = new Date(timestamp);
+  if (!Number.isFinite(date.getTime())) {
+    return 'Edited -';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `Edited ${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
-// Update character count
-function updateCharCount(content) {
-  editModal.charCount.textContent = `${content.length} chars`;
+function updateEditedTime(timestamp) {
+  editModal.editedTime.textContent = formatEditedTime(timestamp);
 }
 
 // Bind edit modal events
@@ -380,7 +389,6 @@ function bindEditModalEvents() {
     }
   });
   editModal.backdrop.addEventListener('click', () => closeEditModal());
-  editModal.textarea.addEventListener('input', handleEditInput);
 
   // Title input validation
   editModal.titleInput.addEventListener('input', handleEditTitleInput);

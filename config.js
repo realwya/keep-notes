@@ -124,7 +124,7 @@ const editModal = {
   titleInput: document.getElementById('editTitleInput'),
   titleError: document.getElementById('editTitleError'),
   tagsContainer: document.getElementById('editTagsContainer'),
-  charCount: document.querySelector('.char-count'),
+  editedTime: document.querySelector('.edited-time'),
   saveBtn: document.querySelector('.btn-save-edit'),
   backdrop: document.querySelector('.edit-modal-backdrop')
 };
