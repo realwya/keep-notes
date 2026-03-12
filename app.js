@@ -387,9 +387,9 @@ function bindEvents() {
       return;
     }
 
-    // Cmd/Ctrl + B: collapse/expand sidebar
+    // Cmd/Ctrl + \: collapse/expand sidebar
     if (
-      e.key.toLowerCase() === 'b' &&
+      e.key === '\\' &&
       (e.metaKey || e.ctrlKey) &&
       !e.altKey &&
       !e.shiftKey &&
@@ -504,8 +504,8 @@ async function addItem(title, content, tags = []) {
   const finalTitle = ensureUniqueTitle(baseTitle);
   const filename = `${finalTitle}.md`;
 
-  // Notes always use front matter with type: note
-  const frontMatterData = { type: 'note' };
+  // Notes always use front matter with type: notes
+  const frontMatterData = { type: 'notes' };
   if (tags.length > 0) {
     frontMatterData.tags = tags.join(',');
   }
@@ -626,20 +626,15 @@ async function handleEmptyTrash() {
 
 // ===== 卡片交互处理 =====
 async function handleCardClick(e) {
-  // 1. Handle open-link button — let the link open normally
-  const openLinkBtn = e.target.closest('.open-link-button');
-  if (openLinkBtn) {
-    // Do not prevent default, let the link open
-    return;
-  }
-
-  // 1.2 Handle card-url click — open link in new tab
+  // 1. Handle card-url click — open link in new tab
   const cardUrl = e.target.closest('.card-url');
   if (cardUrl) {
     e.preventDefault();
     e.stopPropagation();
     const card = cardUrl.closest('.card');
-    const href = card?.querySelector('.open-link-button')?.href;
+    const id = card?.dataset.id;
+    const item = items.find(i => i.id === id);
+    const href = item ? withHttpProtocol(getItemParsed(item).data.url) : '';
     if (href) window.open(href, '_blank', 'noopener,noreferrer');
     return;
   }

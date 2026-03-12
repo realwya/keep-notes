@@ -155,8 +155,8 @@ let searchQuery = '';
 // Tag filter state
 let selectedTags = new Set();  // Selected tag names
 let allTags = [];              // Unique tags with counts: [{ name: 'tech', count: 5 }, ...]
-let selectedType = null;       // Selected type (single-select): note/link/image
-let allTypes = [];             // Types with counts: [{ name: 'note', count: 3 }, ...]
+let selectedType = null;       // Selected type (single-select): notes/links/x-posts/images
+let allTypes = [];             // Types with counts: [{ name: 'notes', count: 3 }, ...]
 
 // Edit-related state
 let currentEditingItem = null;

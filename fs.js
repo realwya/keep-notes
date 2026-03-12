@@ -133,14 +133,12 @@ async function loadItems(view = currentView) {
           const file = await entry.getFile();
           let text = await file.text();
 
-          if (view === VIEW_ACTIVE) {
-            const normalized = normalizeItemTypeInContent(text);
-            if (normalized !== text) {
-              const writable = await entry.createWritable();
-              await writable.write(normalized);
-              await writable.close();
-              text = normalized;
-            }
+          const normalized = normalizeItemTypeInContent(text);
+          if (normalized !== text) {
+            const writable = await entry.createWritable();
+            await writable.write(normalized);
+            await writable.close();
+            text = normalized;
           }
 
           const stat = file.lastModified;

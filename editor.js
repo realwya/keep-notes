@@ -277,7 +277,7 @@ async function saveEditedNote() {
   const oldFilename = currentEditingItem.fileName;
   const newFilename = `${sanitizedTitle}.md`;
   const { data: originalData } = getItemParsed(currentEditingItem);
-  const frontMatterData = { ...originalData, type: 'note' };
+  const frontMatterData = { ...originalData, type: 'notes' };
   delete frontMatterData.url;
   delete frontMatterData.image;
   delete frontMatterData.description;

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if ! rg -q "e\\.key\\.toLowerCase\\(\\) === 'b'" app.js; then
-  echo "FAIL: keyboard shortcut should listen for B key"
+if ! rg -q "e\\.key === '\\\\\\\\'" app.js; then
+  echo "FAIL: keyboard shortcut should listen for backslash key"
   exit 1
 fi
 
@@ -16,4 +16,4 @@ if ! rg -q "toggleSidebarCollapse\\(\\)" app.js; then
   exit 1
 fi
 
-echo "PASS: Cmd/Ctrl+B toggles sidebar collapse/expand"
+echo "PASS: Cmd/Ctrl+\\\\ toggles sidebar collapse/expand"

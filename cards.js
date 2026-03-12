@@ -60,13 +60,6 @@ function createLinkCard(data) {
   const card = template.querySelector('.card');
   card.dataset.id = data.id;
 
-  // Set open-link button href
-  const openLinkBtn = card.querySelector('.open-link-button');
-  if (openLinkBtn) {
-    const safeUrl = withHttpProtocol(data.url);
-    openLinkBtn.href = safeUrl || '#';
-  }
-
   const imageWrap = card.querySelector('.card-image');
   const img = card.querySelector('.card-image img');
   const titleEl = card.querySelector('.card-title');

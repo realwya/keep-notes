@@ -223,11 +223,11 @@ function extractDirectImageUrl(rawUrl) {
 }
 
 function getLinkTypeFromUrl(url) {
-  return extractDirectImageUrl(url) ? 'image' : 'link';
+  return extractXPostId(url) ? 'x-posts' : extractDirectImageUrl(url) ? 'images' : 'links';
 }
 
 function isLinkItemType(type) {
-  return type === 'link' || type === 'image';
+  return type === 'links' || type === 'images' || type === 'x-posts';
 }
 
 function normalizeItemTypeInContent(text) {
@@ -240,7 +240,7 @@ function normalizeItemTypeInContent(text) {
   if (nextData.url) {
     nextData.type = getLinkTypeFromUrl(nextData.url);
   } else {
-    nextData.type = 'note';
+    nextData.type = 'notes';
   }
 
   if (hasFrontMatter) {

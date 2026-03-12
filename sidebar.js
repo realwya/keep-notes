@@ -1,5 +1,5 @@
 // ===== 侧边栏筛选功能 =====
-const TYPE_FILTER_ORDER = ['note', 'link', 'image'];
+const TYPE_FILTER_ORDER = ['notes', 'links', 'x-posts', 'images'];
 
 /**
  * 从所有项目中提取唯一标签并计数
@@ -30,7 +30,7 @@ function extractAllTags() {
 
 /**
  * 从所有项目中提取类型并计数
- * 按固定顺序输出: note -> link -> image
+ * 按固定顺序输出: notes -> links -> x-posts -> images
  * @returns {Array} 类型数组 [{ name, count }]
  */
 function extractAllTypes() {

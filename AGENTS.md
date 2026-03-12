@@ -23,7 +23,11 @@ npx serve .
 bash tests/*.test.sh
 
 # Run single test
-bash tests/feather-icons.test.sh```
+bash tests/feather-icons.test.sh
+
+# Review targeted changes
+git diff -- path/to/file
+```
 
 ## Code Style
 
@@ -78,12 +82,24 @@ fi
 echo "PASS: description"
 ```
 
+Preferred workflow in this repo:
+
+- Run the most relevant `bash tests/<feature>.test.sh` script for the area you changed first.
+- Run `bash tests/*.test.sh` before wrapping up broader UI or behavior changes.
+
 Current checks in this repo:
 
 - `tests/feather-icons.test.sh`: Lucide icon usage and no inline SVG
 - `tests/copy-markdown-action.test.sh`: Note-card copy markdown action wiring and clipboard feedback
 - `tests/archive-view.test.sh`: Archive view functionality logic
 - `tests/sidebar-collapse-toggle.test.sh`: Sidebar toggle interactions
+- `tests/logo-branding.test.sh`: Sidebar/logo asset wiring and favicon usage
+- `tests/add-box-shortcut.test.sh` and `tests/paste-shortcut.test.sh`: Keyboard shortcut handling
+- `tests/card-tag-action.test.sh` and `tests/edit-modal-tags-layout.test.sh`: Tag action and edit modal tag layout behavior
+- `tests/sidebar-control-height.test.sh`, `tests/sidebar-empty-tags-state.test.sh`, and `tests/sidebar-shortcut.test.sh`: Sidebar sizing, empty state, and shortcuts
+- `tests/link-cover-preview-position.test.sh`, `tests/link-cover-preview-contain-layout.test.sh`, and `tests/link-cover-preview-stability.test.sh`: Link cover preview layout behavior
+- `tests/x-post-type.test.sh`, `tests/x-post-capsule-icon.test.sh`, `tests/x-post-skeleton-structure.test.sh`, and `tests/x-post-load-performance.test.sh`: X post rendering and filter behavior
+- `tests/type-migration-all-views.test.sh`, `tests/card-image-layout.test.sh`, `tests/card-render-cache.test.sh`, `tests/editor-modal-stability.test.sh`, and `tests/markdown-list-continue.test.sh`: View migration, rendering, editor stability, and markdown continuation
 
 ## File System Conventions
 

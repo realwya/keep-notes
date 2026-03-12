@@ -164,11 +164,13 @@ body {
   gap: 0.5rem;
 }
 
-.brand-icon {
+.brand-logo {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
-  color: var(--yellow);
+  display: block;
+  border-radius: 0.45rem;
+  object-fit: contain;
 }
 
 .brand-title {
@@ -893,7 +895,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 1rem;
+  padding: 0.5rem 0.5rem;
   background: var(--bg-card);
   visibility: hidden;
   transition:
@@ -1030,6 +1032,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: underline;
 }
 
 .x-post-embed {
@@ -1878,10 +1881,10 @@ body {
   align-items: center;
   gap: 0.25rem;
   padding: 0.3rem 0.5rem;
-  background: var(--accent-color);
+  background: var(--accent-light-bg);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
-  color: var(--tag-selected-text);
+  color: var(--accent-color);
   font-weight: var(--font-weight-label);
 }
 
@@ -1910,8 +1913,8 @@ body {
 }
 
 .card-tags .tag {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
+  background: var(--accent-light-bg);
+  color: var(--accent-color);
 }
 
 /* ===== 链接编辑表单 ===== */
