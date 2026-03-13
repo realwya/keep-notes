@@ -283,29 +283,37 @@
     <div class="edit-modal-container">
       <div class="edit-modal-body">
         <form id="linkEditForm" class="link-edit-form">
-          <div class="form-group">
-            <label for="linkEditTitle">Title</label>
-            <input type="text" id="linkEditTitle" name="title" class="form-input">
-          </div>
-          <div class="form-group">
-            <label for="linkEditUrl">Link</label>
-            <input type="url" id="linkEditUrl" name="url" class="form-input">
-          </div>
-          <div class="form-group">
-            <label for="linkEditDescription">Description</label>
-            <textarea id="linkEditDescription" name="description" class="form-textarea" rows="2"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="linkEditImage">Cover image</label>
-            <input type="text" id="linkEditImage" name="image" class="form-input">
-          </div>
-          <div class="link-cover-preview hidden" id="linkCoverPreview">
-            <img id="linkCoverPreviewImage" alt="Cover image preview">
-            <span id="linkCoverPreviewHint">Cover preview unavailable</span>
-          </div>
-          <div class="form-group edit-tags-group">
-            <label for="linkEditTags">Tags</label>
-            <div id="linkEditTagsContainer" class="tags-input-container"></div>
+          <div class="link-edit-layout">
+            <div class="link-edit-sidebar-pane">
+              <div class="form-group link-edit-title-group">
+                <label for="linkEditTitle">Title</label>
+                <input type="text" id="linkEditTitle" name="title" class="form-input">
+              </div>
+              <div class="form-group link-edit-url-group">
+                <label for="linkEditUrl">Link</label>
+                <input type="url" id="linkEditUrl" name="url" class="form-input">
+              </div>
+              <div class="form-group link-edit-description-group">
+                <label for="linkEditDescription">Description</label>
+                <textarea id="linkEditDescription" name="description" class="form-textarea" rows="2"></textarea>
+              </div>
+              <div id="linkEditImageGroup" class="form-group link-edit-cover-group">
+                <label for="linkEditImage">Cover image</label>
+                <input type="text" id="linkEditImage" name="image" class="form-input">
+              </div>
+            </div>
+            <div class="link-edit-media-pane">
+              <div class="link-cover-preview hidden" id="linkCoverPreview">
+                <img id="linkCoverPreviewImage" alt="Cover image preview">
+                <span id="linkCoverPreviewHint">Cover preview unavailable</span>
+              </div>
+            </div>
+            <div class="link-edit-sidebar-pane link-edit-sidebar-pane-secondary">
+              <div class="form-group edit-tags-group link-edit-tags-group">
+                <label for="linkEditTags">Tags</label>
+                <div id="linkEditTagsContainer" class="tags-input-container"></div>
+              </div>
+            </div>
           </div>
         </form>
       </div>

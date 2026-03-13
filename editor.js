@@ -195,12 +195,21 @@ async function openNoteEditModal(item, data, content) {
 
 // Open link edit modal
 function openLinkEditModal(item, data) {
+  const isImageItem = data.type === 'images';
+  const rawUrl = data.url || '';
+  const storedImageUrl = data.image || '';
+  const previewUrl = isImageItem ? rawUrl || storedImageUrl : storedImageUrl;
+  const imageValue = isImageItem ? rawUrl || storedImageUrl : storedImageUrl;
+
   // Populate form fields
   linkEditModal.form.title.value = data.title || '';
-  linkEditModal.form.url.value = data.url || '';
+  linkEditModal.form.url.value = rawUrl;
   linkEditModal.form.description.value = data.description || '';
-  linkEditModal.form.image.value = data.image || '';
-  updateLinkCoverPreview(linkEditModal.form.image.value);
+  linkEditModal.form.image.value = imageValue;
+  linkEditModal.form.image.dataset.storedValue = storedImageUrl;
+  linkEditModal.modal.classList.toggle('image-detail-layout', isImageItem);
+  linkEditModal.coverImageGroup.classList.toggle('hidden', isImageItem);
+  updateLinkCoverPreview(previewUrl);
   updateEditedTime(item.createdAt, linkEditModal.editedTime);
 
   // Populate tags
@@ -229,6 +238,13 @@ function updateLinkCoverPreview(imageUrl) {
   linkEditModal.coverPreview.classList.remove('hidden');
   setLinkCoverPreviewState('loading', 'Loading preview...');
   linkEditModal.coverPreviewImage.src = trimmedUrl;
+}
+
+function resetLinkEditModalState() {
+  linkEditModal.modal.classList.remove('image-detail-layout');
+  linkEditModal.coverImageGroup.classList.remove('hidden');
+  delete linkEditModal.form.image.dataset.storedValue;
+  updateLinkCoverPreview('');
 }
 
 // Close note edit modal (auto-save)
@@ -430,7 +446,22 @@ function bindEditModalEvents() {
 // Bind link edit modal events
 function bindLinkEditModalEvents() {
   linkEditModal.form.image.addEventListener('input', (e) => {
+    if (linkEditModal.modal.classList.contains('image-detail-layout')) {
+      return;
+    }
     updateLinkCoverPreview(e.target.value);
+  });
+
+  linkEditModal.form.url.addEventListener('input', (e) => {
+    if (!linkEditModal.modal.classList.contains('image-detail-layout')) {
+      return;
+    }
+
+    const rawUrl = e.target.value.trim();
+    const storedImageUrl = linkEditModal.form.image.dataset.storedValue || '';
+    const previewUrl = rawUrl || storedImageUrl;
+    linkEditModal.form.image.value = previewUrl;
+    updateLinkCoverPreview(previewUrl);
   });
 
   linkEditModal.coverPreviewImage.addEventListener('load', () => {
@@ -445,6 +476,7 @@ function bindLinkEditModalEvents() {
     const saved = await saveLinkEdit();
     if (saved) {
       linkEditModal.modal.classList.add('hidden');
+      resetLinkEditModalState();
     }
   });
   linkEditModal.backdrop.addEventListener('click', () => closeLinkEditModal());
@@ -463,6 +495,7 @@ function bindLinkEditModalEvents() {
 async function closeLinkEditModal() {
   if (!currentEditingItem) {
     linkEditModal.modal.classList.add('hidden');
+    resetLinkEditModalState();
     return;
   }
 
@@ -470,6 +503,7 @@ async function closeLinkEditModal() {
   const saved = await saveLinkEdit();
   if (saved) {
     linkEditModal.modal.classList.add('hidden');
+    resetLinkEditModalState();
   }
 }
 
@@ -488,12 +522,15 @@ async function saveLinkEdit() {
   }
 
   // Get form data
+  const isImageItem = linkEditModal.modal.classList.contains('image-detail-layout');
+  const storedImageUrl = linkEditModal.form.image.value.trim();
+  const imageValue = isImageItem ? rawUrl || storedImageUrl : storedImageUrl;
   const formData = {
     type: getLinkTypeFromUrl(rawUrl),
     title: linkEditModal.form.title.value.trim(),
     url: rawUrl,
     description: linkEditModal.form.description.value.trim(),
-    image: linkEditModal.form.image.value.trim(),
+    image: imageValue,
   };
 
   if (!formData.url) {
@@ -514,6 +551,7 @@ async function saveLinkEdit() {
     currentEditingItem = null;
     linkEditModal.form.reset();
     linkEditTagsInput.clear();
+    resetLinkEditModalState();
     return true;
   }
 
@@ -546,6 +584,7 @@ async function saveLinkEdit() {
     currentEditingItem = null;
     linkEditModal.form.reset();
     linkEditTagsInput.clear();
+    resetLinkEditModalState();
 
     // Reset button state
     linkEditModal.saveBtn.disabled = false;

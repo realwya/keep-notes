@@ -133,6 +133,7 @@ const editModal = {
 const linkEditModal = {
   modal: document.getElementById('linkEditModal'),
   form: document.getElementById('linkEditForm'),
+  coverImageGroup: document.getElementById('linkEditImageGroup'),
   coverPreview: document.getElementById('linkCoverPreview'),
   coverPreviewImage: document.getElementById('linkCoverPreviewImage'),
   coverPreviewHint: document.getElementById('linkCoverPreviewHint'),
