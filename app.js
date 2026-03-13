@@ -553,21 +553,32 @@ async function addLinkItem(url, tags = []) {
   updateEmptyState();
 
   try {
-    const metadata = await fetchLinkMetadata(url);
+    const linkType = getLinkTypeFromUrl(url);
+    const fallbackTitle = extractReadableTitleFromUrl(url);
+    const frontMatterData = {
+      type: linkType,
+      title: fallbackTitle,
+      url: url,
+      description: '',
+      image: linkType === 'images' ? url : ''
+    };
+
+    if (linkType === 'links') {
+      try {
+        const metadata = await fetchLinkMetadata(url);
+        frontMatterData.title = metadata.title || fallbackTitle;
+        frontMatterData.description = (metadata.description || '').replace(/\n/g, ' ');
+        frontMatterData.image = metadata.image || '';
+      } catch (error) {
+        console.warn('Fetch link metadata failed:', error);
+      }
+    }
 
     // Use link title as filename (sanitize invalid characters)
-    const rawTitle = metadata.title || extractReadableTitleFromUrl(url);
+    const rawTitle = frontMatterData.title || fallbackTitle;
     const sanitizedTitle = sanitizeFilename(rawTitle);
     const uniqueTitle = ensureUniqueTitle(sanitizedTitle);
     const filename = `${uniqueTitle}.md`;
-
-    const frontMatterData = {
-      type: getLinkTypeFromUrl(url),
-      title: metadata.title || extractReadableTitleFromUrl(url),
-      url: url,
-      description: (metadata.description || '').replace(/\n/g, ' '),
-      image: metadata.image || ''
-    };
 
     // Add tags to front matter if present
     if (tags.length > 0) {

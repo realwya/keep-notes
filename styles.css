@@ -902,6 +902,7 @@ body {
     visibility var(--transition-fast),
     opacity var(--transition-fast);
   opacity: 0;
+  justify-content: flex-end;
 }
 
 .card-actions .icon-button {
@@ -1154,6 +1155,10 @@ body {
   background: var(--bg-card);
 }
 
+.image-link-card {
+  position: relative;
+}
+
 .image-link-card .card-image img {
   height: auto;
   max-height: 640px;
@@ -1167,8 +1172,33 @@ body {
   display: none;
 }
 
-.image-link-card .card-tags:empty {
+.image-link-card .card-tags {
   display: none;
+}
+
+.image-link-card .card-actions {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  justify-content: flex-end;
+  padding: 0.625rem;
+  background: linear-gradient(to top,
+      rgba(244, 245, 240, 0.9),
+      rgba(244, 245, 240, 0.62));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.image-link-card:hover .card-actions,
+.image-link-card:focus-within .card-actions {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* ===== 笔记卡片 ===== */
@@ -1453,6 +1483,15 @@ body {
 
   .edit-codemirror .cm-content {
     font-size: var(--font-size-sm);
+  }
+}
+
+@media (hover: none),
+(pointer: coarse) {
+  .image-link-card .card-actions {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 

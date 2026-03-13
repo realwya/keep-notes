@@ -26,7 +26,7 @@ if ! rg -q "type: getLinkTypeFromUrl\\(rawUrl\\)," editor.js; then
   exit 1
 fi
 
-if ! rg -q "type: getLinkTypeFromUrl\\(url\\)," app.js; then
+if ! rg -q "const linkType = getLinkTypeFromUrl\\(url\\);" app.js || ! rg -q "type: linkType," app.js; then
   echo "FAIL: new links should keep using URL-based type detection"
   exit 1
 fi
